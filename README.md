@@ -12,6 +12,7 @@
 
 Currently, this repository houses the **High-Fidelity Frontend**, showcasing a pixel-perfect UI with glassmorphism effects, neon accents, and smooth interactions.
 
+## ✨ DEMO : https://rextoken-delta.vercel.app/
 ---
 
 ## ✨ Key Features
