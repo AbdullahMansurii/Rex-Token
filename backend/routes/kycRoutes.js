@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const { submitKYC, getKYCRequests, updateKYCStatus, upload } = require('../controllers/kycController');
+const { submitKYC, getKYCRequests, updateKYCStatus, getUserKYC, upload } = require('../controllers/kycController');
 
 // Helper middleware for admin check
 const admin = (req, res, next) => {
@@ -19,6 +19,9 @@ router.post('/', protect, upload.fields([
     { name: 'aadharBack', maxCount: 1 },
     { name: 'panImage', maxCount: 1 }
 ]), submitKYC);
+
+// Get My KYC
+router.get('/me', protect, getUserKYC);
 
 // Admin Routes
 router.get('/admin', protect, admin, getKYCRequests);

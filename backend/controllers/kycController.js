@@ -120,9 +120,26 @@ const updateKYCStatus = async (req, res) => {
     }
 };
 
+// @desc    Get Current User KYC
+// @route   GET /api/kyc/me
+// @access  Private
+const getUserKYC = async (req, res) => {
+    try {
+        const kyc = await KYC.findOne({ user: req.user._id });
+        if (!kyc) {
+            return res.status(404).json({ message: 'KYC not found' });
+        }
+        res.json(kyc);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     submitKYC,
     getKYCRequests,
     updateKYCStatus,
+    getUserKYC,
     upload
 };

@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const Withdrawal = () => {
     const { user } = useAuth();
-    const [source, setSource] = useState('loyalty');
+    const [source, setSource] = useState('normal');
     const [method, setMethod] = useState('bank');
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -12,35 +12,66 @@ const Withdrawal = () => {
     const [bankDetails, setBankDetails] = useState('');
     const [walletAddress, setWalletAddress] = useState('');
 
-    // Mock Data for Sources (In a real app, fetch from User wallet)
+    // KYC State
+    const [kycBank, setKycBank] = useState(null);
+    const [isEditingBank, setIsEditingBank] = useState(true); // Default to true (manual input) until KYC is found
+
+    // Mock Data for Sources
     const sources = {
-        loyalty: { name: "Loyalty Points", balance: 12500, symbol: "Pts", icon: "L", color: "bg-purple-600" },
-        rex: { name: "REX Token", balance: 8500, symbol: "REX", icon: "R", color: "bg-teal-500" },
-        shopping: { name: "Shopping Tokens", balance: 3200, symbol: "Tokens", icon: "S", color: "bg-pink-600" }
+        normal: { name: "Normal Withdrawal", balance: 24500, symbol: "INR", icon: "N", color: "bg-emerald-600" },
+        sos: { name: "SOS Withdrawal", balance: 5000, symbol: "INR", icon: "S", color: "bg-red-600" }
     };
 
-    // Fetch Withdrawal History
+    // Fetch Withdrawal History & KYC Data
     useEffect(() => {
-        const fetchWithdrawals = async () => {
+        const fetchData = async () => {
+            if (!user) return;
+            const token = user.token || JSON.parse(localStorage.getItem('user'))?.token;
+
             try {
-                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/withdrawals', {
+                // 1. Fetch Withdrawals
+                const withdrawalsRes = await fetch('http://localhost:5000/api/withdrawals', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await response.json();
-                if (response.ok) {
+                if (withdrawalsRes.ok) {
+                    const data = await withdrawalsRes.json();
                     setWithdrawals(data);
                 }
+
+                // 2. Fetch KYC Data
+                const kycRes = await fetch('http://localhost:5000/api/kyc/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (kycRes.ok) {
+                    const data = await kycRes.json();
+                    if (data?.bankAccountNumber) {
+                        setKycBank(data.bankAccountNumber);
+                        setBankDetails(data.bankAccountNumber);
+                        setIsEditingBank(false); // Switch to "Verified" mode
+                    }
+                }
             } catch (error) {
-                console.error("Failed to fetch withdrawals", error);
+                console.error("Failed to fetch data", error);
             }
         };
 
-        if (user) fetchWithdrawals();
+        fetchData();
     }, [user]);
 
     const handleMax = () => {
         setAmount(sources[source].balance);
+    };
+
+    const toggleBankEdit = () => {
+        if (isEditingBank) {
+            // Cancel edit -> Revert to KYC bank
+            setBankDetails(kycBank);
+            setIsEditingBank(false);
+        } else {
+            // Start edit -> Clear field for new entry
+            setBankDetails('');
+            setIsEditingBank(true);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -130,7 +161,7 @@ const Withdrawal = () => {
                             {/* Source Selector */}
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-white">Select Source</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(sources).map(([key, data]) => (
                                         <div
                                             key={key}
@@ -181,52 +212,61 @@ const Withdrawal = () => {
                             {/* Method Selector */}
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-white">Withdrawal Method</label>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1">
                                     <button
                                         type="button"
-                                        onClick={() => setMethod('bank')}
-                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition ${method === 'bank' ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/20' : 'bg-black/20 border-white/10 text-gray-400'
-                                            }`}
+                                        className="flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/20 cursor-default"
                                     >
                                         <Building className="w-4 h-4" /> Bank Transfer
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMethod('crypto')}
-                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm transition ${method === 'crypto' ? 'bg-yellow-600 border-yellow-500 text-white shadow-lg shadow-yellow-900/20' : 'bg-black/20 border-white/10 text-gray-400'
-                                            }`}
-                                    >
-                                        <Wallet className="w-4 h-4" /> Crypto Wallet
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Dynamic Fields */}
-                            {method === 'bank' ? (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-white">Bank Account Details</label>
-                                    <input
-                                        type="text"
-                                        value={bankDetails}
-                                        onChange={(e) => setBankDetails(e.target.value)}
-                                        placeholder="Enter your bank account number"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition"
-                                        required
-                                    />
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-white">Wallet Address (BEP-20)</label>
-                                    <input
-                                        type="text"
-                                        value={walletAddress}
-                                        onChange={(e) => setWalletAddress(e.target.value)}
-                                        placeholder="0x..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition"
-                                        required
-                                    />
-                                </div>
-                            )}
+                            {/* Bank Details Field */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-white">Bank Account Details</label>
+
+                                {kycBank && !isEditingBank ? (
+                                    <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-500/20 text-green-500 rounded-full">
+                                                <CheckCircle className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-bold text-sm">Verified KYC Account</p>
+                                                <p className="text-green-400 text-xs font-mono">{kycBank}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={toggleBankEdit}
+                                            className="text-gray-400 hover:text-white text-xs underline"
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <input
+                                            type="text"
+                                            value={bankDetails}
+                                            onChange={(e) => setBankDetails(e.target.value)}
+                                            placeholder="Enter your bank account number"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition"
+                                            required
+                                        />
+                                        {kycBank && (
+                                            <button
+                                                type="button"
+                                                onClick={toggleBankEdit}
+                                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                            >
+                                                <CheckCircle className="w-3 h-3" /> Use my saved KYC account
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             <button
                                 type="submit"
@@ -285,7 +325,7 @@ const Withdrawal = () => {
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 rounded-md text-xs font-bold ${tx.status === 'Completed' || tx.status === 'Approved' ? 'bg-green-500/10 text-green-400' :
-                                                            tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-500'
+                                                        tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-500'
                                                         }`}>
                                                         {tx.status}
                                                     </span>
