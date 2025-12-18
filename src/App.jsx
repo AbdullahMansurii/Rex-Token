@@ -28,6 +28,7 @@ import WithdrawalRequests from "./pages/admin/WithdrawalRequests";
 import PackageManagement from "./pages/admin/PackageManagement";
 import TransactionMonitor from "./pages/admin/TransactionMonitor";
 import ReportsAnalytics from "./pages/admin/ReportsAnalytics";
+import TokenManagement from "./pages/admin/TokenManagement";
 
 const ProtectRoute = ({ children, roleRequired }) => {
   const { user } = useAuth();
@@ -76,6 +77,7 @@ function App() {
           <Route path="packages" element={<PackageManagement />} />
           <Route path="transactions" element={<TransactionMonitor />} />
           <Route path="reports" element={<ReportsAnalytics />} />
+          <Route path="tokens" element={<TokenManagement />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Route>

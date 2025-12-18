@@ -111,9 +111,71 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const SystemSetting = require('../models/SystemSetting');
+
+// @desc    Get Token Price
+// @route   GET /api/admin/settings/price
+// @access  Private/Admin
+const getTokenPrice = async (req, res) => {
+    try {
+        let setting = await SystemSetting.findOne({ key: 'tokenPrice' });
+        if (!setting) {
+            // Default price if not set
+            setting = await SystemSetting.create({ key: 'tokenPrice', value: 0.10, description: 'Current Token Price in USDT' });
+        }
+        res.json({ price: setting.value });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update Token Price
+// @route   PUT /api/admin/settings/price
+// @access  Private/Admin
+const updateTokenPrice = async (req, res) => {
+    try {
+        const { price } = req.body;
+        const setting = await SystemSetting.findOneAndUpdate(
+            { key: 'tokenPrice' },
+            { value: price },
+            { new: true, upsert: true }
+        );
+        res.json({ price: setting.value });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Recover User Wallet
+// @route   POST /api/admin/users/recover
+// @access  Private/Admin
+const recoverWallet = async (req, res) => {
+    try {
+        const { email, newWallet } = req.body;
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found with this email' });
+        }
+
+        user.wallet = newWallet;
+        await user.save();
+
+        res.json({
+            message: `Wallet recovered successfully for ${user.name}`,
+            newWallet: user.wallet
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getAllUsers,
     updateUser,
-    deleteUser
+    deleteUser,
+    getTokenPrice,
+    updateTokenPrice,
+    recoverWallet
 };
