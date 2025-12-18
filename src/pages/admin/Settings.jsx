@@ -1,4 +1,3 @@
-```javascript
 import { useState } from "react";
 import { Save, AlertTriangle, Power, CreditCard, Lock } from "lucide-react";
 
@@ -155,4 +154,3 @@ const Settings = () => {
 };
 
 export default Settings;
-```
