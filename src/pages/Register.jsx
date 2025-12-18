@@ -14,7 +14,7 @@ const RegisterPage = () => {
     });
     const [error, setError] = useState("");
 
-    const handleRegister = (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
         setError("");
 
@@ -31,13 +31,33 @@ const RegisterPage = () => {
 
         setIsLoading(true);
 
-        // Simulate Network Request
-        setTimeout(() => {
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: formData.name, // Mapping 'name' to 'username' as expected by backend
+                    email: formData.email,
+                    password: formData.password,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Registration successful
+                navigate("/login");
+            } else {
+                setError(data.message || "Registration failed. Please try again.");
+            }
+        } catch (err) {
+            setError("Network error. Please try again later.");
+            console.error("Registration error:", err);
+        } finally {
             setIsLoading(false);
-            // In a real app, we would register the user here.
-            // For now, redirect to login with a "success" state implied.
-            navigate("/login");
-        }, 1500);
+        }
     };
 
     return (

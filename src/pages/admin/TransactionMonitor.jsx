@@ -1,74 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreditCard, ArrowUpRight, ArrowDownLeft, Repeat, Users, Hash, Calendar, XCircle, CheckCircle, Clock, DollarSign } from "lucide-react";
 import clsx from "clsx";
+import { useAuth } from "../../context/AuthContext";
 
 const TransactionMonitor = () => {
-    const [filter, setFilter] = useState("all");
+    const { user } = useAuth();
+    const [filter, setFilter] = useState("All");
+    const [transactions, setTransactions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock Stats
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/transactions/admin', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setTransactions(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch transactions", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTransactions();
+    }, [user]);
+
+    // Calculate Stats
     const stats = [
-        { label: "Total Transactions", value: "45,234", icon: Repeat, color: "text-blue-500", bgColor: "bg-blue-500/10" },
-        { label: "Total Volume", value: "₹12.4M", icon: DollarSign, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: "Pending", value: "23", icon: Clock, color: "text-orange-500", bgColor: "bg-orange-500/10" },
-        { label: "Failed", value: "5", icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
-        { label: "Today", value: "1,234", icon: Calendar, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+        { label: "Total Transactions", value: transactions.length, icon: Repeat, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+        { label: "Total Volume", value: `₹${transactions.reduce((acc, t) => acc + (t.status === 'Completed' ? t.amount : 0), 0).toLocaleString()}`, icon: DollarSign, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+        { label: "Pending", value: transactions.filter(t => t.status === 'Pending').length, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-500/10" },
+        { label: "Failed/Rejected", value: transactions.filter(t => t.status === 'Failed' || t.status === 'Rejected').length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
     ];
 
-    // Mock Transaction Data
-    const transactions = [
-        {
-            id: "#TXN-89012",
-            type: "Deposit",
-            user: "John Doe",
-            amount: "₹5,000",
-            crypto: "USDT",
-            hash: "0x78a...92b1",
-            status: "Completed",
-            date: "2024-03-16 14:30"
-        },
-        {
-            id: "#TXN-89011",
-            type: "Withdrawal",
-            user: "Alice Smith",
-            amount: "₹2,500",
-            crypto: "BTC",
-            hash: "0x9c2...4e1f",
-            status: "Pending",
-            date: "2024-03-16 14:15"
-        },
-        {
-            id: "#TXN-89010",
-            type: "Investment",
-            user: "Robert Fox",
-            amount: "₹10,000",
-            crypto: "Wallet",
-            hash: "—",
-            status: "Completed",
-            date: "2024-03-16 13:45"
-        },
-        {
-            id: "#TXN-89009",
-            type: "Referral",
-            user: "Emma Wilson",
-            amount: "₹500",
-            crypto: "System",
-            hash: "—",
-            status: "Completed",
-            date: "2024-03-16 13:30"
-        },
-        {
-            id: "#TXN-89008",
-            type: "Deposit",
-            user: "David Liu",
-            amount: "₹15,000",
-            crypto: "ETH",
-            hash: "0x3a1...8f2d",
-            status: "Failed",
-            date: "2024-03-16 12:10"
-        },
-    ];
-
-    const filteredTransactions = filter === "all"
+    const filteredTransactions = filter === "All"
         ? transactions
         : transactions.filter(txn => txn.type.toLowerCase() === filter.toLowerCase());
 
@@ -81,7 +51,7 @@ const TransactionMonitor = () => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => {
                     const Icon = stat.icon;
                     return (
@@ -103,10 +73,10 @@ const TransactionMonitor = () => {
                 {["All", "Deposit", "Withdrawal", "Investment", "Referral"].map((tab) => (
                     <button
                         key={tab}
-                        onClick={() => setFilter(tab.toLowerCase())}
+                        onClick={() => setFilter(tab)}
                         className={clsx(
                             "px-6 py-3 text-sm font-bold border-b-2 transition whitespace-nowrap",
-                            filter === tab.toLowerCase()
+                            filter === tab
                                 ? "border-primary text-primary"
                                 : "border-transparent text-gray-400 hover:text-white"
                         )}
@@ -122,47 +92,52 @@ const TransactionMonitor = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-black/20 text-gray-400 text-xs uppercase tracking-wider border-b border-white/5">
                             <tr>
-                                <th className="p-4 font-medium">Transaction ID</th>
                                 <th className="p-4 font-medium">Type</th>
                                 <th className="p-4 font-medium">User</th>
                                 <th className="p-4 font-medium">Amount</th>
-                                <th className="p-4 font-medium">Crypto/Method</th>
-                                <th className="p-4 font-medium">Hash</th>
+                                <th className="p-4 font-medium">Method</th>
                                 <th className="p-4 font-medium">Status</th>
                                 <th className="p-4 font-medium text-right">Date/Time</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-sm">
-                            {filteredTransactions.map((txn) => (
-                                <tr key={txn.id} className="hover:bg-white/5 transition bg-zinc-900/50">
-                                    <td className="p-4 font-mono text-gray-300 text-xs">{txn.id}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            {txn.type === 'Deposit' && <ArrowDownLeft className="w-4 h-4 text-green-500" />}
-                                            {txn.type === 'Withdrawal' && <ArrowUpRight className="w-4 h-4 text-red-500" />}
-                                            {txn.type === 'Investment' && <Repeat className="w-4 h-4 text-blue-500" />}
-                                            {txn.type === 'Referral' && <Users className="w-4 h-4 text-purple-500" />}
-                                            <span className="font-bold text-white">{txn.type}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-white">{txn.user}</td>
-                                    <td className={clsx("p-4 font-bold", txn.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500')}>
-                                        {txn.type === 'Withdrawal' ? '-' : '+'}{txn.amount}
-                                    </td>
-                                    <td className="p-4 text-gray-400">{txn.crypto}</td>
-                                    <td className="p-4 text-gray-500 font-mono text-xs">{txn.hash}</td>
-                                    <td className="p-4">
-                                        <span className={clsx(
-                                            "px-2.5 py-1 rounded-full text-xs font-bold",
-                                            txn.status === 'Completed' ? 'bg-green-500/10 text-green-500' :
-                                                txn.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
-                                        )}>
-                                            {txn.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right text-gray-500 text-xs">{txn.date}</td>
-                                </tr>
-                            ))}
+                            {isLoading ? (
+                                <tr><td colSpan="6" className="p-8 text-center text-gray-400">Loading transactions...</td></tr>
+                            ) : filteredTransactions.length === 0 ? (
+                                <tr><td colSpan="6" className="p-8 text-center text-gray-400">No transactions found.</td></tr>
+                            ) : (
+                                filteredTransactions.map((txn) => (
+                                    <tr key={txn._id} className="hover:bg-white/5 transition bg-zinc-900/50">
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2">
+                                                {txn.type === 'Deposit' && <ArrowDownLeft className="w-4 h-4 text-green-500" />}
+                                                {txn.type === 'Withdrawal' && <ArrowUpRight className="w-4 h-4 text-red-500" />}
+                                                {txn.type === 'Investment' && <Repeat className="w-4 h-4 text-blue-500" />}
+                                                {txn.type === 'Referral' && <Users className="w-4 h-4 text-purple-500" />}
+                                                <span className="font-bold text-white">{txn.type}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <p className="text-white font-bold">{txn.user?.name || 'Unknown'}</p>
+                                            <p className="text-gray-500 text-xs">{txn.user?.email || 'N/A'}</p>
+                                        </td>
+                                        <td className={clsx("p-4 font-bold", txn.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500')}>
+                                            {txn.type === 'Withdrawal' ? '-' : '+'}₹{txn.amount}
+                                        </td>
+                                        <td className="p-4 text-gray-400">{txn.method}</td>
+                                        <td className="p-4">
+                                            <span className={clsx(
+                                                "px-2.5 py-1 rounded-full text-xs font-bold",
+                                                txn.status === 'Completed' || txn.status === 'Approved' ? 'bg-green-500/10 text-green-500' :
+                                                    txn.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
+                                            )}>
+                                                {txn.status === 'Approved' ? 'Completed' : txn.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right text-gray-500 text-xs">{new Date(txn.createdAt).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

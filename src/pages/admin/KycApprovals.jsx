@@ -1,25 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldCheck, XCircle, CheckCircle, Clock, FileText, ChevronRight, User } from "lucide-react";
 import clsx from "clsx";
+import { useAuth } from "../../context/AuthContext";
 
 const KycApprovals = () => {
+    const { user } = useAuth();
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [requests, setRequests] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock Stats
+    // Fetch Requests
+    useEffect(() => {
+        const fetchRequests = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/kyc/admin', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setRequests(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch KYC requests", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRequests();
+    }, [user]);
+
+    const handleStatusUpdate = async (id, status, comments = "") => {
+        try {
+            const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+            const response = await fetch(`http://localhost:5000/api/kyc/admin/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status, adminComments: comments })
+            });
+
+            if (response.ok) {
+                // Remove from list
+                setRequests(requests.filter(req => req._id !== id));
+                setSelectedRequest(null);
+            }
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    // Mock Stats (Dynamic in real app, keeping static for now or calculating)
     const stats = [
-        { label: "Pending Review", value: "145", icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: "Approved Today", value: "89", icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-500/10" },
-        { label: "Rejected Today", value: "12", icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
-        { label: "Total Verified", value: "8,234", icon: ShieldCheck, color: "text-primary", bgColor: "bg-primary/10" },
-    ];
-
-    // Mock Requests Data
-    const requests = [
-        { id: 1, name: "Sahil Miyawala", email: "chhipasahil163@gmail.com", date: "Today, 10:23 AM", status: "pending", avatar: "S", color: "bg-purple-500" },
-        { id: 2, name: "John Doe", email: "john.doe@example.com", date: "Today, 09:45 AM", status: "pending", avatar: "J", color: "bg-blue-500" },
-        { id: 3, name: "Alice Smith", email: "alice.smith@test.com", date: "Yesterday, 11:30 PM", status: "pending", avatar: "A", color: "bg-green-500" },
-        { id: 4, name: "Robert Fox", email: "robert.fox@demo.com", date: "Yesterday, 08:15 PM", status: "pending", avatar: "R", color: "bg-yellow-500" },
-        { id: 5, name: "Emma Wilson", email: "emma.wilson@email.com", date: "Yesterday, 06:00 PM", status: "pending", avatar: "E", color: "bg-pink-500" },
+        { label: "Pending Review", value: requests.length.toString(), icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+        { label: "Active Users", value: "8,234", icon: ShieldCheck, color: "text-primary", bgColor: "bg-primary/10" },
     ];
 
     return (
@@ -57,71 +94,127 @@ const KycApprovals = () => {
                         <h3 className="text-lg font-bold text-white">Pending Requests</h3>
                     </div>
                     <div className="overflow-y-auto flex-1 p-2 space-y-2">
-                        {requests.map((req) => (
-                            <button
-                                key={req.id}
-                                onClick={() => setSelectedRequest(req)}
-                                className={clsx(
-                                    "w-full flex items-center gap-3 p-3 rounded-lg transition text-left",
-                                    selectedRequest?.id === req.id
-                                        ? "bg-primary/20 border border-primary/50"
-                                        : "hover:bg-white/5 border border-transparent"
-                                )}
-                            >
-                                <div className={clsx("w-10 h-10 rounded-full flex items-center justify-center text-white font-bold", req.color)}>
-                                    {req.avatar}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-white font-medium text-sm truncate">{req.name}</p>
-                                    <p className="text-gray-500 text-xs truncate">{req.email}</p>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-xs text-gray-400 block">{req.date.split(",")[0]}</span>
-                                    <ChevronRight className={clsx("w-4 h-4 ml-auto mt-1", selectedRequest?.id === req.id ? "text-primary" : "text-gray-600")} />
-                                </div>
-                            </button>
-                        ))}
+                        {isLoading ? (
+                            <p className="text-gray-500 text-center p-4">Loading...</p>
+                        ) : requests.length === 0 ? (
+                            <p className="text-gray-500 text-center p-4">No pending requests</p>
+                        ) : (
+                            requests.map((req) => (
+                                <button
+                                    key={req._id}
+                                    onClick={() => setSelectedRequest(req)}
+                                    className={clsx(
+                                        "w-full flex items-center gap-3 p-3 rounded-lg transition text-left",
+                                        selectedRequest?._id === req._id
+                                            ? "bg-primary/20 border border-primary/50"
+                                            : "hover:bg-white/5 border border-transparent"
+                                    )}
+                                >
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white font-bold">
+                                        {req.user?.name?.charAt(0) || "U"}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white font-medium text-sm truncate">{req.user?.name}</p>
+                                        <p className="text-gray-500 text-xs truncate">{req.user?.email}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-xs text-gray-400 block">{new Date(req.createdAt).toLocaleDateString()}</span>
+                                        <ChevronRight className={clsx("w-4 h-4 ml-auto mt-1", selectedRequest?._id === req._id ? "text-primary" : "text-gray-600")} />
+                                    </div>
+                                </button>
+                            ))
+                        )}
                     </div>
                 </div>
 
                 {/* Detail View */}
                 <div className="lg:col-span-2 bg-zinc-900 border border-white/5 rounded-xl overflow-hidden flex flex-col relative">
                     {selectedRequest ? (
-                        <div className="h-full flex flex-col">
+                        <div className="h-full flex flex-col overflow-y-auto">
                             {/* User Detail Header */}
                             <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-black/20">
-                                <div className={clsx("w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-glow", selectedRequest.color)}>
-                                    {selectedRequest.avatar}
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center bg-primary text-white font-bold text-2xl shadow-glow">
+                                    {selectedRequest.user?.name?.charAt(0)}
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
-                                    <p className="text-gray-400">{selectedRequest.email}</p>
+                                    <h2 className="text-2xl font-bold text-white">{selectedRequest.user?.name}</h2>
+                                    <p className="text-gray-400">{selectedRequest.user?.email}</p>
                                     <div className="flex items-center gap-2 mt-2">
                                         <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
                                             Verification Pending
                                         </span>
-                                        <span className="text-gray-500 text-xs">Submitted: {selectedRequest.date}</span>
+                                        <span className="text-gray-500 text-xs">Aadhar: {selectedRequest.aadharNumber}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Document Preview Area (Mock) */}
-                            <div className="flex-1 p-8 grid place-items-center">
-                                <div className="text-center">
-                                    <div className="w-full max-w-md aspect-video bg-black/40 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center gap-4 group cursor-pointer hover:border-primary/50 transition">
-                                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition">
-                                            <FileText className="w-8 h-8 text-gray-400" />
+                            {/* Document Preview Area */}
+                            <div className="flex-1 p-6 space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-gray-400 text-xs mb-2">Profile Photo</p>
+                                        {selectedRequest.profilePhoto ? (
+                                            <img src={`http://localhost:5000/${selectedRequest.profilePhoto}`} className="w-full rounded-lg border border-white/10" alt="Profile" />
+                                        ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-400 text-xs mb-2">PAN Card</p>
+                                        {selectedRequest.panImage ? (
+                                            <img src={`http://localhost:5000/${selectedRequest.panImage}`} className="w-full rounded-lg border border-white/10" alt="PAN" />
+                                        ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-gray-400 text-xs mb-2">Aadhar Front</p>
+                                        {selectedRequest.aadharFront ? (
+                                            <img src={`http://localhost:5000/${selectedRequest.aadharFront}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Front" />
+                                        ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-400 text-xs mb-2">Aadhar Back</p>
+                                        {selectedRequest.aadharBack ? (
+                                            <img src={`http://localhost:5000/${selectedRequest.aadharBack}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Back" />
+                                        ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-white/5 rounded-xl space-y-2">
+                                    <p className="text-white font-bold text-sm">Bank Details</p>
+                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                        <div>
+                                            <span className="text-gray-500 block">Bank Name</span>
+                                            <span className="text-white">{selectedRequest.bankName}</span>
                                         </div>
-                                        <p className="text-gray-400 text-sm">National ID / Passport Preview</p>
+                                        <div>
+                                            <span className="text-gray-500 block">Account Number</span>
+                                            <span className="text-white">{selectedRequest.bankAccountNumber}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500 block">IFSC</span>
+                                            <span className="text-white">{selectedRequest.ifscCode}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500 block">Holder Name</span>
+                                            <span className="text-white">{selectedRequest.bankAccountHolder}</span>
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4 mt-8 w-full max-w-md">
-                                        <button className="py-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2">
-                                            <XCircle className="w-5 h-5" /> Reject KYC
-                                        </button>
-                                        <button className="py-3 rounded-xl bg-green-500/10 text-green-500 font-bold hover:bg-green-500 hover:text-white transition flex items-center justify-center gap-2 shadow-glow-hover">
-                                            <CheckCircle className="w-5 h-5" /> Approve KYC
-                                        </button>
-                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedRequest._id, 'rejected')}
+                                        className="py-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2"
+                                    >
+                                        <XCircle className="w-5 h-5" /> Reject KYC
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusUpdate(selectedRequest._id, 'verified')}
+                                        className="py-3 rounded-xl bg-green-500/10 text-green-500 font-bold hover:bg-green-500 hover:text-white transition flex items-center justify-center gap-2 shadow-glow-hover"
+                                    >
+                                        <CheckCircle className="w-5 h-5" /> Approve KYC
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -1,85 +1,105 @@
-import { useState } from "react";
-import { Search, Eye, Edit2, Trash2, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Eye, Edit2, Trash2 } from "lucide-react";
 import clsx from "clsx";
+import { useAuth } from "../../context/AuthContext";
 
 const UserManagement = () => {
+    const { user } = useAuth();
+    const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [filter, setFilter] = useState("all");
-    const [kycFilter, setKycFilter] = useState("all");
+    const [filter, setFilter] = useState("All");
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock User Data matching reference
-    const [users] = useState([
-        {
-            id: 1,
-            name: "Sahil Miyawala",
-            email: "chhipasahil163@gmail.com",
-            wallet: "0x0000000000000000000000000000000000000000",
-            investment: "—",
-            status: "active",
-            kyc: "verification_needed",
-            joined: "—",
-            initial: "S",
-            color: "bg-purple-500"
-        },
-        {
-            id: 2,
-            name: "John Doe",
-            email: "rextoken@gmail.com",
-            wallet: "0x0000000000000000000000000000000000000000",
-            investment: "—",
-            status: "active",
-            kyc: "verification_needed",
-            joined: "—",
-            initial: "J",
-            color: "bg-purple-500"
-        },
-        // Adding more mock data for display
-        {
-            id: 3,
-            name: "Alice Smith",
-            email: "alice@example.com",
-            wallet: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-            investment: "₹5,000",
-            status: "blocked",
-            kyc: "verified",
-            joined: "12 Oct 2024",
-            initial: "A",
-            color: "bg-blue-500"
-        },
-        {
-            id: 4,
-            name: "Robert Fox",
-            email: "robert@test.com",
-            wallet: "0x123d35Cc6634C0532925a3b844Bc454e4438f44e",
-            investment: "₹12,500",
-            status: "active",
-            kyc: "verified",
-            joined: "15 Oct 2024",
-            initial: "R",
-            color: "bg-green-500"
-        },
-        {
-            id: 5,
-            name: "Emma Wilson",
-            email: "emma@demo.com",
-            wallet: "0x987d35Cc6634C0532925a3b844Bc454e4438f44e",
-            investment: "—",
-            status: "pending",
-            kyc: "rejected",
-            joined: "20 Oct 2024",
-            initial: "E",
-            color: "bg-yellow-500"
-        }
-    ]);
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setUsers(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch users", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.wallet.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = filter === "all" || user.status === filter;
-        const matchesKyc = kycFilter === "all" || user.kyc === kycFilter;
-        return matchesSearch && matchesStatus && matchesKyc;
+        if (user) fetchUsers();
+    }, [user]);
+
+    const filteredUsers = users.filter(u => {
+        const matchesSearch =
+            (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        // Simple filter logic - can be expanded based on specific status fields if added to User model
+        const matchesFilter = filter === "All" || u.role === filter; // Placeholder logic
+
+        return matchesSearch;
     });
+
+    const handleDelete = async (userId) => {
+        if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    setUsers(users.filter(u => u._id !== userId));
+                } else {
+                    alert("Failed to delete user");
+                }
+            } catch (error) {
+                console.error("Delete failed", error);
+            }
+        }
+    };
+
+    // Edit State
+    const [editingUser, setEditingUser] = useState(null);
+    const [editFormData, setEditFormData] = useState({ name: "", email: "", role: "user", balance: 0 });
+
+    const handleEditClick = (user) => {
+        setEditingUser(user);
+        setEditFormData({
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            balance: user.balance
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        try {
+            const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+            const response = await fetch(`http://localhost:5000/api/admin/users/${editingUser._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(editFormData)
+            });
+
+            const updatedUser = await response.json();
+
+            if (response.ok) {
+                setUsers(users.map(u => u._id === updatedUser._id ? updatedUser : u));
+                setEditingUser(null);
+            } else {
+                alert(updatedUser.message || "Failed to update user");
+            }
+        } catch (error) {
+            console.error("Update failed", error);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -89,43 +109,23 @@ const UserManagement = () => {
                     <h1 className="text-2xl font-bold text-white">User Management</h1>
                     <p className="text-gray-400 text-sm">Manage and monitor all platform users</p>
                 </div>
-                <button className="px-6 py-2.5 bg-primary hover:bg-primary-glow text-white font-bold rounded-xl shadow-glow transition flex items-center gap-2">
-                    <Plus className="w-4 h-4" /> Add New User
-                </button>
             </div>
 
             {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-zinc-900 border border-white/5 rounded-xl">
-                <div className="md:col-span-2 relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-zinc-900 border border-white/5 rounded-xl">
+                <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input
                         type="text"
-                        placeholder="Search users by name, email, or wallet..."
+                        placeholder="Search users by name or email..."
                         className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-white focus:border-primary outline-none transition"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <select
-                    className="bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                >
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="blocked">Blocked</option>
-                </select>
-                <select
-                    className="bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:border-primary outline-none"
-                    value={kycFilter}
-                    onChange={(e) => setKycFilter(e.target.value)}
-                >
-                    <option value="all">KYC Status</option>
-                    <option value="verified">Verified</option>
-                    <option value="verification_needed">Verification Needed</option>
-                    <option value="rejected">Rejected</option>
-                </select>
+                <div className="text-right text-gray-400 text-sm flex items-center justify-end">
+                    Total Users: {users.length}
+                </div>
             </div>
 
             {/* Data Table */}
@@ -135,76 +135,129 @@ const UserManagement = () => {
                         <thead className="bg-black/20 text-gray-400 text-xs uppercase tracking-wider border-b border-white/5">
                             <tr>
                                 <th className="p-4 font-medium">User</th>
-                                <th className="p-4 font-medium">Wallet Address</th>
-                                <th className="p-4 font-medium">Investment</th>
-                                <th className="p-4 font-medium">Status</th>
-                                <th className="p-4 font-medium">KYC</th>
-                                <th className="p-4 font-medium">Join Date</th>
+                                <th className="p-4 font-medium">Email</th>
+                                <th className="p-4 font-medium">Role</th>
+                                <th className="p-4 font-medium">Joined</th>
                                 <th className="p-4 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-sm">
-                            {filteredUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-white/5 transition bg-zinc-900/50">
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={clsx("w-8 h-8 rounded-full flex items-center justify-center text-white font-bold", user.color)}>
-                                                {user.initial}
+                            {isLoading ? (
+                                <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading users...</td></tr>
+                            ) : filteredUsers.length === 0 ? (
+                                <tr><td colSpan="5" className="p-8 text-center text-gray-400">No users found.</td></tr>
+                            ) : (
+                                filteredUsers.map((u) => (
+                                    <tr key={u._id} className="hover:bg-white/5 transition bg-zinc-900/50">
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
+                                                    {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                                                </div>
+                                                <p className="text-white font-bold">{u.name || 'Unknown'}</p>
                                             </div>
-                                            <div>
-                                                <p className="text-white font-bold">{user.name}</p>
-                                                <p className="text-gray-500 text-xs">{user.email}</p>
+                                        </td>
+                                        <td className="p-4 text-gray-400">{u.email}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold capitalize ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                                                {u.role}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-gray-500 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleEditClick(u)}
+                                                    className="p-2 text-gray-400 hover:text-primary hover:bg-white/10 rounded-lg transition"
+                                                    title="Edit User"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(u._id)}
+                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-white/10 rounded-lg transition"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <p className="text-purple-400 text-xs font-mono">{user.wallet.substring(0, 42)}...</p>
-                                    </td>
-                                    <td className="p-4 text-white font-medium">{user.investment}</td>
-                                    <td className="p-4">
-                                        <span className={clsx(
-                                            "px-3 py-1 rounded-full text-xs font-bold",
-                                            user.status === 'active' ? 'bg-green-500/10 text-green-500' :
-                                                user.status === 'blocked' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'
-                                        )}>
-                                            {user.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={clsx(
-                                            "px-3 py-1 rounded-full text-xs font-bold",
-                                            user.kyc === 'verified' ? 'bg-green-500/10 text-green-500' :
-                                                user.kyc === 'rejected' ? 'bg-red-500/10 text-red-500' : 'bg-red-900/40 text-red-400'
-                                        )}>
-                                            {user.kyc}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-gray-400">{user.joined}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition"><Eye className="w-4 h-4" /></button>
-                                            <button className="p-2 text-gray-400 hover:text-primary hover:bg-white/10 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                                            <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-white/10 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                {/* Pagination */}
-                <div className="p-4 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-                    <p className="text-gray-500">Showing 1 to {filteredUsers.length} of 12,450 users</p>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1.5 border border-white/10 rounded-lg text-white hover:bg-white/5 disabled:opacity-50">Previous</button>
-                        <button className="px-3 py-1.5 bg-primary text-white rounded-lg shadow-glow">1</button>
-                        <button className="px-3 py-1.5 border border-white/10 rounded-lg text-white hover:bg-white/5">2</button>
-                        <button className="px-3 py-1.5 border border-white/10 rounded-lg text-white hover:bg-white/5">3</button>
-                        <button className="px-3 py-1.5 border border-white/10 rounded-lg text-white hover:bg-white/5">Next</button>
+            {/* Edit User Modal */}
+            {editingUser && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold text-white mb-6">Edit User</h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-gray-400 text-xs mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editFormData.name}
+                                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-400 text-xs mb-1">Email Address</label>
+                                <input
+                                    type="email"
+                                    value={editFormData.email}
+                                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-gray-400 text-xs mb-1">Role</label>
+                                    <select
+                                        value={editFormData.role}
+                                        onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                    >
+                                        <option value="user">User</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-400 text-xs mb-1">Wallet Balance</label>
+                                    <input
+                                        type="number"
+                                        value={editFormData.balance}
+                                        onChange={(e) => setEditFormData({ ...editFormData, balance: Number(e.target.value) })}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setEditingUser(null)}
+                                className="flex-1 py-2.5 text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                className="flex-1 py-2.5 text-sm font-bold bg-primary text-white rounded-xl hover:bg-primary-glow shadow-glow transition"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

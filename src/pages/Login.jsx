@@ -24,20 +24,43 @@ const LoginPage = () => {
 
         setIsLoading(true);
 
-        // Simulate Network Request
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-            // Admin Logic Check
-            if (formData.email === "admin@example.com" && formData.password === "admin123") {
-                login({ name: "Admin User", email: formData.email, role: "admin" });
-                navigate("/admin");
+            const data = await response.json();
+
+            if (response.ok) {
+                // Store token and user data
+                localStorage.setItem('user', JSON.stringify(data));
+
+                // Login via context
+                login({
+                    name: data.username,
+                    email: data.email,
+                    role: data.role,
+                    token: data.token
+                });
+
+                if (data.role === 'admin') {
+                    navigate("/admin");
+                } else {
+                    navigate("/dashboard");
+                }
             } else {
-                // Default User Logic
-                login({ name: "Crypto King", email: formData.email, role: "user" });
-                navigate("/dashboard");
+                setError(data.message || "Invalid credentials.");
             }
-        }, 1500);
+        } catch (err) {
+            setError("Network error. Please try again later.");
+            console.error("Login error:", err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

@@ -1,13 +1,32 @@
+import { useState, useEffect } from "react";
 import { History, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const Transactions = () => {
-    const transactions = [
-        { id: "TX123456789", type: "Deposit", amount: "₹500.00", status: "Completed", date: "2024-03-15 14:30", method: "USDT (TRC20)" },
-        { id: "TX987654321", type: "Withdrawal", amount: "₹50.00", status: "Pending", date: "2024-03-14 09:15", method: "USDT (TRC20)" },
-        { id: "TX456123789", type: "ROI Income", amount: "₹12.50", status: "Completed", date: "2024-03-13 10:00", method: "Internal" },
-        { id: "TX789123456", type: "Deposit", amount: "₹1000.00", status: "Completed", date: "2024-03-10 16:45", method: "BTC" },
-        { id: "TX321654987", type: "Ref Bonus", amount: "₹50.00", status: "Completed", date: "2024-03-09 11:20", method: "Internal" },
-    ];
+    const { user } = useAuth();
+    const [transactions, setTransactions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/transactions', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setTransactions(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch transactions", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (user) fetchTransactions();
+    }, [user]);
 
     return (
         <div className="space-y-6">
@@ -26,7 +45,6 @@ const Transactions = () => {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-white/5 text-gray-400">
                             <tr>
-                                <th className="p-4 font-medium">Tx ID</th>
                                 <th className="p-4 font-medium">Type</th>
                                 <th className="p-4 font-medium">Date/Time</th>
                                 <th className="p-4 font-medium">Method</th>
@@ -35,33 +53,39 @@ const Transactions = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {transactions.map((tx) => (
-                                <tr key={tx.id} className="hover:bg-white/5 transition">
-                                    <td className="p-4 text-gray-500 font-mono text-xs">{tx.id}</td>
-                                    <td className="p-4">
-                                        <span className="flex items-center gap-2 text-white font-medium">
-                                            {tx.type === 'Withdrawal' ? (
-                                                <ArrowUpRight className="w-4 h-4 text-red-400" />
-                                            ) : (
-                                                <ArrowDownLeft className="w-4 h-4 text-green-400" />
-                                            )}
-                                            {tx.type}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-gray-400">{tx.date}</td>
-                                    <td className="p-4 text-gray-300">{tx.method}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${tx.status === 'Completed' ? 'bg-green-500/10 text-green-400' :
-                                            'bg-yellow-500/10 text-yellow-400'
-                                            }`}>
-                                            {tx.status}
-                                        </span>
-                                    </td>
-                                    <td className={`p-4 text-right font-bold ${tx.type === 'Withdrawal' ? 'text-red-400' : 'text-green-400'}`}>
-                                        {tx.type === 'Withdrawal' ? '-' : '+'}{tx.amount}
-                                    </td>
-                                </tr>
-                            ))}
+                            {isLoading ? (
+                                <tr><td colSpan="6" className="p-4 text-center text-gray-500">Loading transactions...</td></tr>
+                            ) : transactions.length === 0 ? (
+                                <tr><td colSpan="6" className="p-4 text-center text-gray-500">No transactions found.</td></tr>
+                            ) : (
+                                transactions.map((tx) => (
+                                    <tr key={tx._id} className="hover:bg-white/5 transition">
+                                        <td className="p-4">
+                                            <span className="flex items-center gap-2 text-white font-medium">
+                                                {tx.type === 'Withdrawal' ? (
+                                                    <ArrowUpRight className="w-4 h-4 text-red-400" />
+                                                ) : (
+                                                    <ArrowDownLeft className="w-4 h-4 text-green-400" />
+                                                )}
+                                                {tx.type} ({tx.description})
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-gray-400">{new Date(tx.createdAt).toLocaleString()}</td>
+                                        <td className="p-4 text-gray-300">{tx.method}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${tx.status === 'Completed' ? 'bg-green-500/10 text-green-400' :
+                                                    tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                        'bg-red-500/10 text-red-400'
+                                                }`}>
+                                                {tx.status}
+                                            </span>
+                                        </td>
+                                        <td className={`p-4 text-right font-bold ${tx.type === 'Withdrawal' ? 'text-red-400' : 'text-green-400'}`}>
+                                            {tx.type === 'Withdrawal' ? '-' : '+'}₹{tx.amount}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

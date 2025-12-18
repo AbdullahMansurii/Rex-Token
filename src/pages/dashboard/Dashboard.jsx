@@ -9,6 +9,7 @@ import {
     Cpu
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const DashboardCard = ({ title, children, className = "" }) => (
     <div className={`bg-surface border border-white/5 rounded-2xl p-6 shadow-glow-sm hover:border-primary/20 transition group ${className}`}>
@@ -21,7 +22,8 @@ const DashboardCard = ({ title, children, className = "" }) => (
 
 const DashboardHome = () => {
     const { user } = useAuth();
-    const userName = user?.name || "John Doe";
+    const navigate = useNavigate();
+    const userName = user?.username || user?.name || "John Doe";
 
     return (
         <div className="space-y-6">
@@ -118,7 +120,10 @@ const DashboardHome = () => {
                             <h4 className="text-2xl font-bold text-white">₹ 800.00</h4>
                         </div>
 
-                        <button className="w-full py-2.5 text-sm font-bold text-primary border border-primary/20 rounded-lg hover:bg-primary/10 transition">
+                        <button
+                            onClick={() => navigate('/dashboard/transactions')}
+                            className="w-full py-2.5 text-sm font-bold text-primary border border-primary/20 rounded-lg hover:bg-primary/10 transition"
+                        >
                             View Earnings Analytics
                         </button>
                     </div>

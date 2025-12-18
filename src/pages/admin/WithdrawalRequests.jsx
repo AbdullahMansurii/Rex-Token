@@ -1,68 +1,61 @@
-import { useState } from "react";
-import { DollarSign, CheckCircle, XCircle, Clock, Eye, AlertCircle, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { DollarSign, CheckCircle, XCircle, Clock, Eye, AlertCircle, Copy, Loader2 } from "lucide-react";
 import clsx from "clsx";
+import { useAuth } from "../../context/AuthContext";
 
 const WithdrawalRequests = () => {
-    const [filter, setFilter] = useState("pending");
+    const { user } = useAuth();
+    const [filter, setFilter] = useState("Pending");
+    const [requests, setRequests] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Mock Stats
-    const stats = [
-        { label: "Pending Requests", value: "67", icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: "Approved Today", value: "45", icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-500/10" },
-        { label: "Total Amount", value: "₹234.5K", icon: DollarSign, color: "text-primary", bgColor: "bg-primary/10" },
-        { label: "Rejected Today", value: "3", icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
-    ];
+    // Fetch Requests
+    useEffect(() => {
+        const fetchRequests = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/withdrawals/admin', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setRequests(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch requests", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    // Mock Withdrawal Data
-    const requests = [
-        {
-            id: "#W-7821",
-            user: { name: "John Doe", email: "john@email.com" },
-            amount: "₹5,200",
-            method: "BTC",
-            wallet: "bc1qxy...3a8f",
-            date: "2024-03-15 14:30",
-            status: "pending"
-        },
-        {
-            id: "#W-7822",
-            user: { name: "Alice Johnson", email: "alice@email.com" },
-            amount: "₹8,400",
-            method: "ETH",
-            wallet: "0x9e2c...4b1a",
-            date: "2024-03-15 12:15",
-            status: "pending"
-        },
-        {
-            id: "#W-7820",
-            user: { name: "Bob Smith", email: "bob@email.com" },
-            amount: "₹3,100",
-            method: "USDT",
-            wallet: "TX1f5a...7c4e",
-            date: "2024-03-14 18:45",
-            status: "approved"
-        },
-        {
-            id: "#W-7819",
-            user: { name: "Carol Davis", email: "carol@email.com" },
-            amount: "₹12,750",
-            method: "BTC",
-            wallet: "bc1zc8e...2d9b",
-            date: "2024-03-14 09:20",
-            status: "approved"
-        },
-        {
-            id: "#W-7818",
-            user: { name: "David Wilson", email: "david@email.com" },
-            amount: "₹2,900",
-            method: "ETH",
-            wallet: "0x3a7f...8e1c",
-            date: "2024-03-13 16:30",
-            status: "rejected"
-        },
-    ];
+        fetchRequests();
+    }, [user]);
 
-    const filteredRequests = filter === "all"
+    const handleStatusUpdate = async (id, status) => {
+        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
+
+        try {
+            const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+            const response = await fetch(`http://localhost:5000/api/withdrawals/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (response.ok) {
+                const updatedRequest = await response.json();
+                setRequests(requests.map(req => req._id === id ? updatedRequest : req));
+                alert(`Request ${status} successfully`);
+            }
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
+    const filteredRequests = filter === "All"
         ? requests
         : requests.filter(req => req.status === filter);
 
@@ -70,6 +63,14 @@ const WithdrawalRequests = () => {
         navigator.clipboard.writeText(text);
         // Toast notification would go here
     };
+
+    // Calculate Stats
+    const stats = [
+        { label: "Pending Requests", value: requests.filter(r => r.status === 'Pending').length, icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+        { label: "Approved Total", value: requests.filter(r => r.status === 'Approved').length, icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-500/10" },
+        { label: "Total Amount", value: `₹${requests.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}`, icon: DollarSign, color: "text-primary", bgColor: "bg-primary/10" },
+        { label: "Rejected Total", value: requests.filter(r => r.status === 'Rejected').length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
+    ];
 
     return (
         <div className="space-y-6">
@@ -99,7 +100,7 @@ const WithdrawalRequests = () => {
 
             {/* Filter Tabs */}
             <div className="flex gap-2">
-                {["pending", "approved", "rejected", "all"].map((tab) => (
+                {["Pending", "Approved", "Rejected", "All"].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setFilter(tab)}
@@ -121,77 +122,78 @@ const WithdrawalRequests = () => {
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-black/20 text-gray-400 text-xs uppercase tracking-wider border-b border-white/5">
                             <tr>
-                                <th className="p-4 font-medium">ID</th>
                                 <th className="p-4 font-medium">User</th>
                                 <th className="p-4 font-medium">Amount</th>
                                 <th className="p-4 font-medium">Method</th>
-                                <th className="p-4 font-medium">Wallet Address</th>
+                                <th className="p-4 font-medium">Details</th>
                                 <th className="p-4 font-medium">Date</th>
                                 <th className="p-4 font-medium">Status</th>
                                 <th className="p-4 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-sm">
-                            {filteredRequests.map((req) => (
-                                <tr key={req.id} className="hover:bg-white/5 transition bg-zinc-900/50">
-                                    <td className="p-4 text-primary font-mono font-bold">{req.id}</td>
-                                    <td className="p-4">
-                                        <p className="text-white font-bold">{req.user.name}</p>
-                                        <p className="text-gray-500 text-xs">{req.user.email}</p>
-                                    </td>
-                                    <td className="p-4 text-green-500 font-bold">{req.amount}</td>
-                                    <td className="p-4">
-                                        <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-gray-300">
-                                            {req.method}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2 group cursor-pointer" onClick={() => copyToClipboard(req.wallet)}>
-                                            <span className="text-gray-400 text-xs font-mono group-hover:text-primary transition">{req.wallet}</span>
-                                            <Copy className="w-3 h-3 text-gray-600 group-hover:text-primary opacity-0 group-hover:opacity-100 transition" />
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-gray-400 text-xs">{req.date}</td>
-                                    <td className="p-4">
-                                        <span className={clsx(
-                                            "px-3 py-1 rounded-full text-xs font-bold capitalize",
-                                            req.status === 'approved' && "bg-green-500/10 text-green-500",
-                                            req.status === 'pending' && "bg-yellow-500/10 text-yellow-500",
-                                            req.status === 'rejected' && "bg-red-500/10 text-red-500"
-                                        )}>
-                                            {req.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        {req.status === 'pending' ? (
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-green-500/20">
-                                                    Approve
-                                                </button>
-                                                <button className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-red-500/20">
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-bold rounded-lg transition border border-white/5">
-                                                View Details
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                            {isLoading ? (
+                                <tr><td colSpan="7" className="p-8 text-center text-gray-400">Loading requests...</td></tr>
+                            ) : filteredRequests.length === 0 ? (
+                                <tr><td colSpan="7" className="p-8 text-center text-gray-400">No requests found.</td></tr>
+                            ) : (
+                                filteredRequests.map((req) => (
+                                    <tr key={req._id} className="hover:bg-white/5 transition bg-zinc-900/50">
+                                        <td className="p-4">
+                                            <p className="text-white font-bold">{req.user?.name || 'Unknown'}</p>
+                                            <p className="text-gray-500 text-xs">{req.user?.email || 'N/A'}</p>
+                                        </td>
+                                        <td className="p-4 text-green-500 font-bold">₹{req.amount}</td>
+                                        <td className="p-4">
+                                            <span className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs font-mono text-gray-300">
+                                                {req.method}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            {req.method === 'Crypto' ? (
+                                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => copyToClipboard(req.walletAddress)}>
+                                                    <span className="text-gray-400 text-xs font-mono group-hover:text-primary transition truncate max-w-[150px] inline-block">{req.walletAddress}</span>
+                                                    <Copy className="w-3 h-3 text-gray-600 group-hover:text-primary opacity-0 group-hover:opacity-100 transition" />
+                                                </div>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">{req.bankDetails}</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-gray-400 text-xs">{new Date(req.createdAt).toLocaleString()}</td>
+                                        <td className="p-4">
+                                            <span className={clsx(
+                                                "px-3 py-1 rounded-full text-xs font-bold capitalize",
+                                                req.status === 'Approved' && "bg-green-500/10 text-green-500",
+                                                req.status === 'Pending' && "bg-yellow-500/10 text-yellow-500",
+                                                req.status === 'Rejected' && "bg-red-500/10 text-red-500"
+                                            )}>
+                                                {req.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            {req.status === 'Pending' && (
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(req._id, 'Approved')}
+                                                        className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-green-500/20"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(req._id, 'Rejected')}
+                                                        className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-red-500/20"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
-                {filteredRequests.length === 0 && (
-                    <div className="p-12 text-center">
-                        <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <AlertCircle className="w-8 h-8 text-gray-500" />
-                        </div>
-                        <h3 className="text-lg font-bold text-white">No requests found</h3>
-                        <p className="text-gray-500 text-sm mt-1">There are no {filter} withdrawal requests at the moment.</p>
-                    </div>
-                )}
             </div>
         </div>
     );

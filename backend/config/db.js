@@ -12,9 +12,7 @@ const connectDB = async () => {
 
     try {
         const conn = await mongoose.connect(process.env.MONGO_URI, {
-            dbName: "rex-token",
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
+            dbName: "RexToken",
         });
 
         isConnected = true;

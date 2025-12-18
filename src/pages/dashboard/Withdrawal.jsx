@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Wallet, CreditCard, History, Building, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Wallet, CreditCard, History, Building, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const Withdrawal = () => {
@@ -8,26 +8,81 @@ const Withdrawal = () => {
     const [method, setMethod] = useState('bank');
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [withdrawals, setWithdrawals] = useState([]);
+    const [bankDetails, setBankDetails] = useState('');
+    const [walletAddress, setWalletAddress] = useState('');
 
-    // Mock Data for Sources
+    // Mock Data for Sources (In a real app, fetch from User wallet)
     const sources = {
         loyalty: { name: "Loyalty Points", balance: 12500, symbol: "Pts", icon: "L", color: "bg-purple-600" },
         rex: { name: "REX Token", balance: 8500, symbol: "REX", icon: "R", color: "bg-teal-500" },
         shopping: { name: "Shopping Tokens", balance: 3200, symbol: "Tokens", icon: "S", color: "bg-pink-600" }
     };
 
+    // Fetch Withdrawal History
+    useEffect(() => {
+        const fetchWithdrawals = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch('http://localhost:5000/api/withdrawals', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setWithdrawals(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch withdrawals", error);
+            }
+        };
+
+        if (user) fetchWithdrawals();
+    }, [user]);
+
     const handleMax = () => {
         setAmount(sources[source].balance);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setTimeout(() => {
+
+        try {
+            const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+            const payload = {
+                source: sources[source].name,
+                amount: Number(amount),
+                method: method === 'bank' ? 'Bank' : 'Crypto',
+                bankDetails: method === 'bank' ? bankDetails : undefined,
+                walletAddress: method !== 'bank' ? walletAddress : undefined
+            };
+
+            const response = await fetch('http://localhost:5000/api/withdrawals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setWithdrawals([data, ...withdrawals]);
+                setAmount('');
+                setBankDetails('');
+                setWalletAddress('');
+                alert("Withdrawal request submitted successfully!");
+            } else {
+                alert(data.message || "Failed to submit request");
+            }
+        } catch (error) {
+            console.error("Withdrawal error:", error);
+            alert("Something went wrong");
+        } finally {
             setIsLoading(false);
-            setAmount('');
-            // Show toast/success message here
-        }, 1500);
+        }
     };
 
     return (
@@ -60,7 +115,6 @@ const Withdrawal = () => {
                             <span className="text-2xl font-bold text-white">{stat.val}</span>
                             <span className="text-xs text-gray-500">{stat.unit}</span>
                         </div>
-                        <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-${stat.color.split('-')[1]}-500 to-transparent opacity-50`}></div>
                     </div>
                 ))}
             </div>
@@ -108,6 +162,7 @@ const Withdrawal = () => {
                                         onChange={(e) => setAmount(e.target.value)}
                                         className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-8 pr-16 text-white outline-none focus:border-primary transition"
                                         placeholder="0.00"
+                                        required
                                     />
                                     <button
                                         type="button"
@@ -150,17 +205,35 @@ const Withdrawal = () => {
                             {method === 'bank' ? (
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-white">Bank Account Details</label>
-                                    <input type="text" placeholder="Enter your bank account number" className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition" />
+                                    <input
+                                        type="text"
+                                        value={bankDetails}
+                                        onChange={(e) => setBankDetails(e.target.value)}
+                                        placeholder="Enter your bank account number"
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition"
+                                        required
+                                    />
                                 </div>
                             ) : (
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-white">Wallet Address (BEP-20)</label>
-                                    <input type="text" placeholder="0x..." className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition" />
+                                    <input
+                                        type="text"
+                                        value={walletAddress}
+                                        onChange={(e) => setWalletAddress(e.target.value)}
+                                        placeholder="0x..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm outline-none focus:border-primary transition"
+                                        required
+                                    />
                                 </div>
                             )}
 
-                            <button className="w-full py-4 bg-gradient-to-r from-primary to-purple-600 text-white font-bold rounded-xl shadow-glow hover:shadow-primary/50 transition flex items-center justify-center gap-2">
-                                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Submit Withdrawal Request"}
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-4 bg-gradient-to-r from-primary to-purple-600 text-white font-bold rounded-xl shadow-glow hover:shadow-primary/50 transition flex items-center justify-center gap-2"
+                            >
+                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Withdrawal Request"}
                             </button>
 
                             <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex gap-3">
@@ -189,40 +262,37 @@ const Withdrawal = () => {
                                         <th className="p-4 font-medium">Date</th>
                                         <th className="p-4 font-medium">Method</th>
                                         <th className="p-4 font-medium">Status</th>
-                                        <th className="p-4 font-medium"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {[
-                                        { s: 'loyalty', amt: '₹500', date: '2024-01-15', m: 'bank', st: 'Completed' },
-                                        { s: 'rex', amt: '₹250', date: '2024-01-10', m: 'crypto', st: 'Completed' },
-                                        { s: 'shopping', amt: '₹1000', date: '2024-01-08', m: 'bank', st: 'Pending' },
-                                        { s: 'loyalty', amt: '₹750', date: '2024-01-05', m: 'crypto', st: 'Completed' },
-                                        { s: 'rex', amt: '₹300', date: '2024-01-03', m: 'bank', st: 'Completed' },
-                                    ].map((Tx, i) => (
-                                        <tr key={i} className="hover:bg-white/5 transition">
-                                            <td className="p-4 flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-lg ${sources[Tx.s].color} flex items-center justify-center text-white font-bold text-xs`}>
-                                                    {sources[Tx.s].icon}
-                                                </div>
-                                                <span className="text-white font-medium">{sources[Tx.s].name}</span>
-                                            </td>
-                                            <td className="p-4 text-white font-bold">{Tx.amt}</td>
-                                            <td className="p-4 text-gray-400 text-xs">{Tx.date}</td>
-                                            <td className="p-4">
-                                                <span className="flex items-center gap-1.5 text-gray-300 text-xs">
-                                                    {Tx.m === 'bank' ? <Building className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
-                                                    {Tx.m === 'bank' ? 'Bank Transfer' : 'Crypto Wallet'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${Tx.st === 'Completed' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
-                                                    }`}>
-                                                    {Tx.st === 'Completed' ? '✓ Completed' : '⟳ Pending'}
-                                                </span>
-                                            </td>
+                                    {withdrawals.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="p-8 text-center text-gray-500">No withdrawal history found.</td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        withdrawals.map((tx, i) => (
+                                            <tr key={tx._id || i} className="hover:bg-white/5 transition">
+                                                <td className="p-4">
+                                                    <span className="text-white font-medium">{tx.source}</span>
+                                                </td>
+                                                <td className="p-4 text-white font-bold">₹{tx.amount}</td>
+                                                <td className="p-4 text-gray-400 text-xs">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                                <td className="p-4">
+                                                    <span className="flex items-center gap-1.5 text-gray-300 text-xs">
+                                                        {tx.method === 'Bank' ? <Building className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
+                                                        {tx.method === 'Bank' ? 'Bank Transfer' : 'Crypto Wallet'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-bold ${tx.status === 'Completed' || tx.status === 'Approved' ? 'bg-green-500/10 text-green-400' :
+                                                            tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-500'
+                                                        }`}>
+                                                        {tx.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

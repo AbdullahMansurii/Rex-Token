@@ -19,24 +19,24 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
+    // Create user (password hashing handled by pre-save hook)
+    // Mapping 'username' from frontend to 'name' in database
     const user = await User.create({
-        username,
+        name: username,
         email,
-        password: hashedPassword,
+        password,
     });
 
     if (user) {
         res.status(201).json({
             _id: user.id,
-            username: user.username,
+            username: user.name, // Map back to username for frontend
             email: user.email,
             role: user.role,
             token: generateToken(user._id),
+            wallet: user.wallet,
+            balance: user.balance,
+            phone: user.phone
         });
     } else {
         res.status(400).json({ message: 'Invalid user data' });
@@ -49,16 +49,19 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
-    // Check for user email
-    const user = await User.findOne({ email });
+    // Check for user email and explicitly select password
+    const user = await User.findOne({ email }).select('+password');
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await user.matchPassword(password))) {
         res.json({
             _id: user.id,
-            username: user.username,
+            username: user.name, // Map back to username for frontend
             email: user.email,
             role: user.role,
             token: generateToken(user._id),
+            wallet: user.wallet,
+            balance: user.balance,
+            phone: user.phone
         });
     } else {
         res.status(400).json({ message: 'Invalid credentials' });
@@ -81,8 +84,45 @@ const generateToken = (id) => {
     });
 };
 
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (user) {
+            user.name = req.body.name || user.name;
+            user.email = req.body.email || user.email; // Allow email update if needed, but usually restricted
+            user.phone = req.body.phone || user.phone;
+
+            if (req.body.password) {
+                user.password = req.body.password;
+            }
+
+            const updatedUser = await user.save();
+
+            res.json({
+                _id: updatedUser._id,
+                username: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                token: generateToken(updatedUser._id),
+                wallet: updatedUser.wallet,
+                balance: updatedUser.balance,
+                phone: updatedUser.phone
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     getMe,
+    updateProfile
 };
