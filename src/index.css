@@ -81,6 +81,38 @@
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-dash {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 3s ease-out forwards;
+}
+
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%);
+  transform: skewX(-20deg) translateX(-150%);
+  animation: shimmer 3s infinite linear;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: skewX(-20deg) translateX(150%);
+  }
+}
+
 /* Orbit Utilities */
 .orbit-container {
   perspective: 1000px;

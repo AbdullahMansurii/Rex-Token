@@ -24,6 +24,14 @@ const AdminLayout = () => {
 
     return (
         <div className="min-h-screen bg-black text-text flex">
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             <aside className={clsx(
                 "fixed top-0 left-0 h-full w-64 bg-zinc-900 border-r border-white/10 z-50 transition-transform duration-300 transform lg:translate-x-0",
                 isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -42,6 +50,7 @@ const AdminLayout = () => {
                             <Link
                                 key={item.path}
                                 to={item.path}
+                                onClick={() => setIsSidebarOpen(false)}
                                 className={clsx(
                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                     isActive ? "bg-red-500/10 text-red-500" : "text-gray-400 hover:text-white hover:bg-white/5"

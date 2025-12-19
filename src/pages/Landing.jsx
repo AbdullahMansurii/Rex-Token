@@ -1,66 +1,182 @@
+import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Shield, Zap, Globe, ChevronRight, Play, CheckCircle, Database, Lock, Server } from "lucide-react";
+import { ArrowRight, Shield, Zap, Globe, ChevronRight, Play, CheckCircle, Database, Lock, Server, Menu, X } from "lucide-react";
 import Logo from "../components/Logo";
 
 // Navbar Component for Landing Page
-const LandingNavbar = () => (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Logo className="w-10 h-10" />
-                <span className="text-2xl font-bold text-white tracking-wider">REX <span className="text-primary">TOKEN</span></span>
+// Navbar Component for Landing Page
+const LandingNavbar = () => {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Logo className="w-10 h-10" />
+                    <span className="text-xl md:text-2xl font-bold text-white tracking-wider">REX <span className="text-primary">TOKEN</span></span>
+                </div>
+
+                {/* Desktop Menu */}
+                <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+                    <a href="#features" className="hover:text-white transition">Features</a>
+                    <a href="#mission" className="hover:text-white transition">Mission</a>
+                    <a href="#roadmap" className="hover:text-white transition">Roadmap</a>
+                </div>
+
+                <div className="hidden md:flex items-center gap-4">
+                    <Link to="/login" className="text-gray-300 hover:text-white font-medium transition">Login</Link>
+                    <Link to="/register" className="px-6 py-2.5 bg-primary hover:bg-primary-glow text-white rounded-full font-bold shadow-glow transition hover:scale-105">
+                        Get Started
+                    </Link>
+                </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    className="md:hidden text-white p-2"
+                    onClick={() => setIsOpen(!isOpen)}
+                >
+                    {isOpen ? <X /> : <Menu />}
+                </button>
             </div>
 
-            <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
-                <a href="#features" className="hover:text-white transition">Features</a>
-                <a href="#mission" className="hover:text-white transition">Mission</a>
-                <a href="#roadmap" className="hover:text-white transition">Roadmap</a>
+            {/* Mobile Menu Overlay */}
+            {isOpen && (
+                <div className="md:hidden absolute top-20 left-0 w-full bg-background/95 backdrop-blur-xl border-b border-white/10 p-6 flex flex-col gap-6 animate-in slide-in-from-top-5 h-screen">
+                    <a href="#features" className="text-lg font-medium text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Features</a>
+                    <a href="#mission" className="text-lg font-medium text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Mission</a>
+                    <a href="#roadmap" className="text-lg font-medium text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Roadmap</a>
+                    <div className="h-px bg-white/10 w-full" />
+                    <Link to="/login" className="text-lg font-medium text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Login</Link>
+                    <Link to="/register" className="w-full py-3 bg-primary text-center text-white rounded-xl font-bold shadow-glow" onClick={() => setIsOpen(false)}>
+                        Get Started
+                    </Link>
+                </div>
+            )}
+        </nav>
+    );
+};
+
+// Typewriter Effect Component
+const TypewriterText = ({ text, className }) => {
+    const [displayText, setDisplayText] = React.useState('');
+    const [index, setIndex] = React.useState(0);
+
+    React.useEffect(() => {
+        if (index < text.length) {
+            const timeout = setTimeout(() => {
+                setDisplayText(prev => prev + text[index]);
+                setIndex(prev => prev + 1);
+            }, 100);
+            return () => clearTimeout(timeout);
+        }
+    }, [index, text]);
+
+    return <span className={className}>{displayText}<span className="animate-pulse">|</span></span>;
+};
+
+// New Premium Crypto Dashboard Visual
+const CryptoDashboardVisual = () => (
+    <div className="relative w-full h-[400px] md:h-[600px] flex items-center justify-center perspective-1000 my-10 md:my-0">
+        {/* Glow Effects */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-primary/20 blur-[60px] md:blur-[100px] rounded-full pointer-events-none" />
+
+        {/* Main Dashboard Card */}
+        <div className="relative z-10 w-full max-w-[420px] bg-surface/90 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-6 shadow-2xl transform md:rotate-y-12 md:rotate-x-6 hover:rotate-0 transition-all duration-700 ease-out group scale-90 md:scale-100 origin-center">
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                        <Logo className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold">REX Dashboard</h3>
+                        <p className="text-xs text-gray-400">Live Market Data</p>
+                    </div>
+                </div>
+                <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Live
+                </div>
             </div>
 
-            <div className="flex items-center gap-4">
-                <Link to="/login" className="text-gray-300 hover:text-white font-medium transition">Login</Link>
-                <Link to="/login" className="px-6 py-2.5 bg-primary hover:bg-primary-glow text-white rounded-full font-bold shadow-glow transition hover:scale-105">
-                    Get Started
-                </Link>
-            </div>
-        </div>
-    </nav>
-);
+            {/* Chart Area */}
+            <div className="relative h-40 w-full bg-gradient-to-b from-primary/5 to-transparent rounded-xl border border-white/5 p-4 overflow-hidden mb-6">
+                {/* Grid Lines */}
+                <div className="absolute inset-0 grid grid-cols-6 grid-rows-4">
+                    {[...Array(24)].map((_, i) => (
+                        <div key={i} className="border-[0.5px] border-white/5" />
+                    ))}
+                </div>
 
-// Animated Ecosystem Visual
-const EcosystemVisual = () => (
-    <div className="relative w-full h-[500px] flex items-center justify-center perspective-1000">
-        {/* Core */}
-        <div className="absolute w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-purple-500 blur-sm animate-pulse-glow z-20 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full bg-black/90 flex items-center justify-center">
-                <Globe className="w-12 h-12 text-primary animate-spin-slow" />
-            </div>
-        </div>
+                <svg className="absolute inset-0 w-full h-full overflow-visible p-2" viewBox="0 0 100 50" preserveAspectRatio="none">
+                    <path
+                        d="M0 40 Q 20 45, 40 25 T 80 15 T 100 5 L 100 50 L 0 50 Z"
+                        fill="url(#gradient)"
+                        opacity="0.2"
+                    />
+                    <path
+                        d="M0 40 Q 20 45, 40 25 T 80 15 T 100 5"
+                        fill="none"
+                        stroke="url(#lineGradient)"
+                        strokeWidth="2"
+                        className="animate-dash"
+                    />
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#8B5CF6" />
+                            <stop offset="100%" stopColor="transparent" />
+                        </linearGradient>
+                        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#8B5CF6" />
+                            <stop offset="100%" stopColor="#3B82F6" />
+                        </linearGradient>
+                    </defs>
+                </svg>
 
-        {/* Orbit Rings */}
-        <div className="absolute w-[300px] h-[300px] border border-primary/20 rounded-full animate-[spin_10s_linear_infinite]" />
-        <div className="absolute w-[500px] h-[500px] border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-
-        {/* Floating Elements on Orbits */}
-        <div className="absolute w-full h-full animate-[spin_20s_linear_infinite]">
-            <div className="absolute top-1/2 left-[85%] -translate-y-1/2 p-4 bg-surface border border-white/10 rounded-2xl shadow-xl backdrop-blur-md animate-float" style={{ animationDelay: '0s' }}>
-                <Shield className="w-6 h-6 text-green-400 mb-2" />
-                <p className="text-white font-bold text-xs">Secure</p>
+                {/* Floating Tooltip */}
+                <div className="absolute top-[20%] left-[60%] bg-black/80 border border-white/10 px-3 py-1.5 rounded-lg shadow-xl backdrop-blur-md animate-float z-10">
+                    <p className="text-[10px] text-gray-400">REX/USD</p>
+                    <p className="text-sm font-bold text-white">$14.50</p>
+                </div>
             </div>
-        </div>
 
-        <div className="absolute w-full h-full animate-[spin_25s_linear_infinite_reverse]">
-            <div className="absolute top-[15%] left-1/2 -translate-x-1/2 p-4 bg-surface border border-white/10 rounded-2xl shadow-xl backdrop-blur-md animate-float" style={{ animationDelay: '1s' }}>
-                <Zap className="w-6 h-6 text-yellow-400 mb-2" />
-                <p className="text-white font-bold text-xs">Fast</p>
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-default">
+                    <p className="text-xs text-gray-400 mb-1">Total Volume</p>
+                    <p className="text-lg font-bold text-white">$142.5M</p>
+                    <p className="text-[10px] text-green-400">+12.4%</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition cursor-default">
+                    <p className="text-xs text-gray-400 mb-1">Staking APY</p>
+                    <p className="text-lg font-bold text-white">18.2%</p>
+                    <p className="text-[10px] text-green-400">Fixed Rate</p>
+                </div>
             </div>
-        </div>
 
-        <div className="absolute w-full h-full animate-[spin_30s_linear_infinite]">
-            <div className="absolute bottom-[20%] left-[20%] p-4 bg-surface border border-white/10 rounded-2xl shadow-xl backdrop-blur-md animate-float" style={{ animationDelay: '2s' }}>
-                <Database className="w-6 h-6 text-blue-400 mb-2" />
-                <p className="text-white font-bold text-xs">Storage</p>
+            {/* Recent Activity Mini List */}
+            <div className="space-y-3">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recent Activity</p>
+                {[
+                    { type: 'Buy', amount: '2,500 REX', time: '2m ago', color: 'text-green-400' },
+                    { type: 'Stake', amount: '10,000 REX', time: '5m ago', color: 'text-blue-400' }
+                ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full bg-white/5 flex items-center justify-center ${item.color} bg-opacity-10`}>
+                                <div className={`w-2 h-2 rounded-full bg-current`} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-white">{item.type}</p>
+                                <p className="text-xs text-gray-500">{item.time}</p>
+                            </div>
+                        </div>
+                        <span className="text-sm font-bold text-white">{item.amount}</span>
+                    </div>
+                ))}
             </div>
+
+            {/* Shimmer Overlay */}
+            <div className="shimmer pointer-events-none" />
         </div>
     </div>
 );
@@ -73,22 +189,24 @@ const Hero = () => (
         <div className="absolute top-20 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[128px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10 w-full">
-            <div className="space-y-8 text-center lg:text-left">
+            <div className="space-y-8 text-center lg:text-left order-2 lg:order-1">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mx-auto lg:mx-0">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-xs font-medium text-green-400">Live on Mainnet</span>
                 </div>
-                <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight">
-                    The Future of <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Decentralized</span> Trading
-                </h1>
-                <p className="text-lg text-gray-400 max-w-xl leading-relaxed mx-auto lg:mx-0">
+                <div className="min-h-[140px] md:min-h-[220px]"> {/* Fixed height container to prevent layout shift */}
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight">
+                        The Future of <br />
+                        <TypewriterText text="Decentralized Trading" className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400" />
+                    </h1>
+                </div>
+                <p className="text-base md:text-lg text-gray-400 max-w-xl leading-relaxed mx-auto lg:mx-0">
                     Experience lightning-fast swaps, deep liquidity, and minimal fees.
                     Join over 2 million users on the world's most advanced crypto dashboard.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                    <Link to="/login" className="px-8 py-4 bg-primary text-white rounded-xl font-bold shadow-glow hover:bg-primary-glow transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <Link to="/register" className="px-8 py-4 bg-primary text-white rounded-xl font-bold shadow-glow hover:bg-primary-glow transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                         Start Trading Now <ArrowRight className="w-5 h-5" />
                     </Link>
                     <button className="px-8 py-4 bg-white/5 text-white border border-white/10 rounded-xl font-bold hover:bg-white/10 transition flex items-center justify-center gap-2 backdrop-blur-sm">
@@ -110,8 +228,8 @@ const Hero = () => (
             </div>
 
             {/* New Animated Visual */}
-            <div className="relative animate-float block h-full">
-                <EcosystemVisual />
+            <div className="relative block h-full order-1 lg:order-2">
+                <CryptoDashboardVisual />
             </div>
         </div>
     </section>
@@ -256,7 +374,7 @@ const CTASection = () => (
                 <h2 className="text-4xl md:text-5xl font-bold text-white">Ready to start your crypto journey?</h2>
                 <p className="text-xl text-gray-300">Join thousands of users who trust REX Token for their digital asset management.</p>
                 <div className="flex justify-center gap-4">
-                    <Link to="/login" className="px-10 py-4 bg-white text-primary font-bold rounded-xl shadow-xl hover:bg-gray-100 transition transform hover:-translate-y-1">
+                    <Link to="/register" className="px-10 py-4 bg-white text-primary font-bold rounded-xl shadow-xl hover:bg-gray-100 transition transform hover:-translate-y-1">
                         Create Free Account
                     </Link>
                 </div>

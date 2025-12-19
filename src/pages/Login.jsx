@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowRight, Lock, Mail, Loader2, LogIn } from "lucide-react";
 import Logo from "../components/Logo";
+import { API_BASE_URL } from "../config";
 
 const LoginPage = () => {
     const { login } = useAuth();
@@ -25,7 +26,7 @@ const LoginPage = () => {
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -126,16 +127,19 @@ const LoginPage = () => {
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
                                 <>
-                                    <LogIn className="w-5 h-5" /> Login to Account <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                                    <LogIn className="w-5 h-5" /> Login to Account
                                 </>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center">
+                    <div className="mt-8 text-center space-y-4">
                         <p className="text-gray-500 text-sm">
                             Don't have an account? <Link to="/register" className="text-primary hover:text-primary-glow font-bold transition">Create Account</Link>
                         </p>
+                        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition">
+                            <ArrowRight className="w-4 h-4 rotate-180" /> Go Back to Home
+                        </Link>
                     </div>
                 </div>
             </div>

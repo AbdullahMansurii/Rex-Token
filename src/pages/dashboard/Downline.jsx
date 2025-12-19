@@ -110,9 +110,9 @@ const Downline = () => {
                     </div>
                 </div>
 
-                <div className="bg-surface border border-white/5 rounded-t-2xl overflow-hidden">
+                <div className="bg-surface border border-white/5 rounded-t-2xl overflow-hidden overflow-x-auto">
                     {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 p-5 bg-black/20 border-b border-white/5 text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="grid grid-cols-12 gap-4 p-5 bg-black/20 border-b border-white/5 text-xs font-bold text-white uppercase tracking-wider min-w-[800px]">
                         <div className="col-span-3">Level</div>
                         <div className="col-span-2">Members</div>
                         <div className="col-span-3">Business Volume</div>
@@ -123,7 +123,7 @@ const Downline = () => {
                     {/* Table Body */}
                     <div className="divide-y divide-white/5">
                         {levels.map((lvl) => (
-                            <div key={lvl.level} className="grid grid-cols-12 gap-4 p-5 hover:bg-white/5 transition items-center group">
+                            <div key={lvl.level} className="grid grid-cols-12 gap-4 p-5 hover:bg-white/5 transition items-center group min-w-[800px]">
                                 {/* Level */}
                                 <div className="col-span-3">
                                     <div className="flex items-center gap-4">
@@ -175,19 +175,19 @@ const Downline = () => {
                 </div>
 
                 {/* Summary Footer */}
-                <div className="bg-[#1a1a2e] border border-t-0 border-white/5 rounded-b-2xl p-8">
-                    <div className="grid grid-cols-3 text-center divide-x divide-white/10">
-                        <div>
+                <div className="bg-[#1a1a2e] border border-t-0 border-white/5 rounded-b-2xl p-6 md:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 text-center md:divide-x divide-white/10">
+                        <div className="pb-6 md:pb-0 border-b md:border-b-0 border-white/10">
                             <p className="text-gray-500 text-sm mb-1">Total Members</p>
                             <p className="text-3xl font-bold text-white">{stats.totalNetwork}</p>
                         </div>
-                        <div>
+                        <div className="py-6 md:py-0 border-b md:border-b-0 border-white/10">
                             <p className="text-gray-500 text-sm mb-1">Total Business Volume</p>
-                            <p className="text-3xl font-bold text-white">{stats.overallBusiness}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-white">{stats.overallBusiness}</p>
                         </div>
-                        <div>
+                        <div className="pt-6 md:pt-0">
                             <p className="text-gray-500 text-sm mb-1">Total Commission</p>
-                            <p className="text-3xl font-bold text-teal-400">{stats.totalCommission}</p>
+                            <p className="text-2xl md:text-3xl font-bold text-teal-400">{stats.totalCommission}</p>
                         </div>
                     </div>
                 </div>
