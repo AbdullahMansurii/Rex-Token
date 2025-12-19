@@ -12,7 +12,19 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors());
+// Robust CORS configuration
+app.use(cors({
+    origin: '*', // Allow connections from any IP/domain
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Request Logger (to debug network issues)
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} from ${req.ip}`);
+    next();
+});
+
 app.use(express.json());
 
 // Routes
