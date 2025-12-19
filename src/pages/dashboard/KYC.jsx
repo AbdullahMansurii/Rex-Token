@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Upload, CheckCircle, User, CreditCard, Building, Flag, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../config";
 
 const KYC = () => {
     const { user } = useAuth();
@@ -69,7 +70,7 @@ const KYC = () => {
 
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
 
-            const response = await fetch('http://localhost:5000/api/kyc', {
+            const response = await fetch(`${API_BASE_URL}/api/kyc`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
