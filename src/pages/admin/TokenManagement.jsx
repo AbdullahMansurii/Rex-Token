@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Wallet } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const TokenManagement = () => {
     const { user } = useAuth();
@@ -19,7 +20,7 @@ const TokenManagement = () => {
         const fetchPrice = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const res = await fetch('http://localhost:5000/api/admin/settings/price', {
+                const res = await fetch(`${API_BASE_URL}/api/admin/settings/price`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -35,7 +36,7 @@ const TokenManagement = () => {
         setPriceLoading(true);
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const res = await fetch('http://localhost:5000/api/admin/settings/price', {
+            const res = await fetch(`${API_BASE_URL}/api/admin/settings/price`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ const TokenManagement = () => {
         setRecoveryLoading(true);
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const res = await fetch('http://localhost:5000/api/admin/users/recover', {
+            const res = await fetch(`${API_BASE_URL}/api/admin/users/recover`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

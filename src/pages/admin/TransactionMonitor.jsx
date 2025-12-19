@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CreditCard, ArrowUpRight, ArrowDownLeft, Repeat, Users, Hash, Calendar, XCircle, CheckCircle, Clock, DollarSign } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const TransactionMonitor = () => {
     const { user } = useAuth();
@@ -13,7 +14,7 @@ const TransactionMonitor = () => {
         const fetchTransactions = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/transactions/admin', {
+                const response = await fetch(`${API_BASE_URL}/api/transactions/admin`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();

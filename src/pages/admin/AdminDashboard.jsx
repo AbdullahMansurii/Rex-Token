@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const AdminDashboard = () => {
     const { user } = useAuth();
@@ -28,7 +29,7 @@ const AdminDashboard = () => {
         const fetchStats = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/admin/stats', {
+                const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();

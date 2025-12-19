@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Upload, Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const Packages = () => {
     const { user } = useAuth();
@@ -16,7 +17,7 @@ const Packages = () => {
         let isMounted = true;
         const fetchPackages = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/packages');
+                const response = await fetch(`${API_BASE_URL}/api/packages`);
                 const data = await response.json();
 
                 if (isMounted) {

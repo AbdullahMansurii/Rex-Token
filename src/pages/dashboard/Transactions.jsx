@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { History, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const Transactions = () => {
     const { user } = useAuth();
@@ -11,7 +12,7 @@ const Transactions = () => {
         const fetchTransactions = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/transactions', {
+                const response = await fetch(`${API_BASE_URL}/api/transactions`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -74,8 +75,8 @@ const Transactions = () => {
                                         <td className="p-4 text-gray-300">{tx.method}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${tx.status === 'Completed' ? 'bg-green-500/10 text-green-400' :
-                                                    tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' :
-                                                        'bg-red-500/10 text-red-400'
+                                                tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                    'bg-red-500/10 text-red-400'
                                                 }`}>
                                                 {tx.status}
                                             </span>

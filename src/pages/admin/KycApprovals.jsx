@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ShieldCheck, XCircle, CheckCircle, Clock, FileText, ChevronRight, User } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const KycApprovals = () => {
     const { user } = useAuth();
@@ -14,7 +15,7 @@ const KycApprovals = () => {
         const fetchRequests = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/kyc/admin', {
+                const response = await fetch(`${API_BASE_URL}/api/kyc/admin`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -34,7 +35,7 @@ const KycApprovals = () => {
     const handleStatusUpdate = async (id, status, comments = "") => {
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch(`http://localhost:5000/api/kyc/admin/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/kyc/admin/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -154,13 +155,13 @@ const KycApprovals = () => {
                                     <div>
                                         <p className="text-gray-400 text-xs mb-2">Profile Photo</p>
                                         {selectedRequest.profilePhoto ? (
-                                            <img src={`http://localhost:5000/${selectedRequest.profilePhoto}`} className="w-full rounded-lg border border-white/10" alt="Profile" />
+                                            <img src={`${API_BASE_URL}/${selectedRequest.profilePhoto}`} className="w-full rounded-lg border border-white/10" alt="Profile" />
                                         ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
                                     </div>
                                     <div>
                                         <p className="text-gray-400 text-xs mb-2">PAN Card</p>
                                         {selectedRequest.panImage ? (
-                                            <img src={`http://localhost:5000/${selectedRequest.panImage}`} className="w-full rounded-lg border border-white/10" alt="PAN" />
+                                            <img src={`${API_BASE_URL}/${selectedRequest.panImage}`} className="w-full rounded-lg border border-white/10" alt="PAN" />
                                         ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
                                     </div>
                                 </div>
@@ -169,13 +170,13 @@ const KycApprovals = () => {
                                     <div>
                                         <p className="text-gray-400 text-xs mb-2">Aadhar Front</p>
                                         {selectedRequest.aadharFront ? (
-                                            <img src={`http://localhost:5000/${selectedRequest.aadharFront}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Front" />
+                                            <img src={`${API_BASE_URL}/${selectedRequest.aadharFront}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Front" />
                                         ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
                                     </div>
                                     <div>
                                         <p className="text-gray-400 text-xs mb-2">Aadhar Back</p>
                                         {selectedRequest.aadharBack ? (
-                                            <img src={`http://localhost:5000/${selectedRequest.aadharBack}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Back" />
+                                            <img src={`${API_BASE_URL}/${selectedRequest.aadharBack}`} className="w-full rounded-lg border border-white/10" alt="Aadhar Back" />
                                         ) : <p className="text-gray-600 text-sm">Not uploaded</p>}
                                     </div>
                                 </div>

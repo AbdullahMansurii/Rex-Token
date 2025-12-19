@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X, Check, Loader2, Package as PackageIcon } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const PackageManagement = () => {
     const { user } = useAuth();
@@ -26,7 +27,7 @@ const PackageManagement = () => {
         const fetchPackages = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/packages/admin', {
+                const response = await fetch(`${API_BASE_URL}/api/packages/admin`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -48,7 +49,7 @@ const PackageManagement = () => {
         setIsSubmitting(true);
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch('http://localhost:5000/api/packages', {
+            const response = await fetch(`${API_BASE_URL}/api/packages`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ const PackageManagement = () => {
 
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch(`http://localhost:5000/api/packages/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/packages/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

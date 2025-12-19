@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Eye, Edit2, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const UserManagement = () => {
     const { user } = useAuth();
@@ -14,7 +15,7 @@ const UserManagement = () => {
         const fetchUsers = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/admin/users', {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -46,7 +47,7 @@ const UserManagement = () => {
         if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -79,7 +80,7 @@ const UserManagement = () => {
     const handleSaveEdit = async () => {
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch(`http://localhost:5000/api/admin/users/${editingUser._id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/admin/users/${editingUser._id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

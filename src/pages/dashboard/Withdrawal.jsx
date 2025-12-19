@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Wallet, CreditCard, History, Building, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const Withdrawal = () => {
     const { user } = useAuth();
@@ -30,7 +31,7 @@ const Withdrawal = () => {
 
             try {
                 // 1. Fetch Withdrawals
-                const withdrawalsRes = await fetch('http://localhost:5000/api/withdrawals', {
+                const withdrawalsRes = await fetch(`${API_BASE_URL}/api/withdrawals`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (withdrawalsRes.ok) {
@@ -39,7 +40,7 @@ const Withdrawal = () => {
                 }
 
                 // 2. Fetch KYC Data
-                const kycRes = await fetch('http://localhost:5000/api/kyc/me', {
+                const kycRes = await fetch(`${API_BASE_URL}/api/kyc/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (kycRes.ok) {
@@ -88,7 +89,7 @@ const Withdrawal = () => {
                 walletAddress: method !== 'bank' ? walletAddress : undefined
             };
 
-            const response = await fetch('http://localhost:5000/api/withdrawals', {
+            const response = await fetch(`${API_BASE_URL}/api/withdrawals`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

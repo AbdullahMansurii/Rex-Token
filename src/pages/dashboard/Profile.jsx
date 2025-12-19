@@ -1,6 +1,7 @@
 import { User, Mail, Phone, Lock, Copy, Check, ShieldCheck, Wallet, Share2, Edit2, Save, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../../config";
 
 const Profile = () => {
     const { user, login } = useAuth(); // login function can act as 'updateUser' if it sets state
@@ -33,7 +34,7 @@ const Profile = () => {
         setIsLoading(true);
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch('http://localhost:5000/api/auth/profile', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

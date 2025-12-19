@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DollarSign, CheckCircle, XCircle, Clock, Eye, AlertCircle, Copy, Loader2 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const WithdrawalRequests = () => {
     const { user } = useAuth();
@@ -14,7 +15,7 @@ const WithdrawalRequests = () => {
         const fetchRequests = async () => {
             try {
                 const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-                const response = await fetch('http://localhost:5000/api/withdrawals/admin', {
+                const response = await fetch(`${API_BASE_URL}/api/withdrawals/admin`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -36,7 +37,7 @@ const WithdrawalRequests = () => {
 
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
-            const response = await fetch(`http://localhost:5000/api/withdrawals/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/withdrawals/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
