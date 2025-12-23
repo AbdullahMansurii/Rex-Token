@@ -25,7 +25,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import Settings from "./pages/admin/Settings";
 import KycApprovals from "./pages/admin/KycApprovals";
 import WithdrawalRequests from "./pages/admin/WithdrawalRequests";
-import PackageManagement from "./pages/admin/PackageManagement";
+import InvestmentApprovals from "./pages/admin/InvestmentApprovals";
 import TransactionMonitor from "./pages/admin/TransactionMonitor";
 import ReportsAnalytics from "./pages/admin/ReportsAnalytics";
 import TokenManagement from "./pages/admin/TokenManagement";
@@ -74,7 +74,7 @@ function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="kyc-approvals" element={<KycApprovals />} />
           <Route path="withdrawals" element={<WithdrawalRequests />} />
-          <Route path="packages" element={<PackageManagement />} />
+          <Route path="investments" element={<InvestmentApprovals />} />
           <Route path="transactions" element={<TransactionMonitor />} />
           <Route path="reports" element={<ReportsAnalytics />} />
           <Route path="tokens" element={<TokenManagement />} />

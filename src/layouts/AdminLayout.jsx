@@ -15,7 +15,7 @@ const AdminLayout = () => {
         { label: "User Management", path: "/admin/users", icon: Users },
         { label: "KYC Approvals", path: "/admin/kyc-approvals", icon: ShieldCheck },
         { label: "Withdrawal Requests", path: "/admin/withdrawals", icon: DollarSign },
-        { label: "Package Management", path: "/admin/packages", icon: Package },
+        { label: "Investment Approvals", path: "/admin/investments", icon: Package },
         { label: "Transaction Monitor", path: "/admin/transactions", icon: CreditCard },
         { label: "Reports & Analytics", path: "/admin/reports", icon: BarChart3 },
         { label: "Tokens & Wallets", path: "/admin/tokens", icon: DollarSign },

@@ -39,6 +39,7 @@ const LoginPage = () => {
             if (response.ok) {
                 // Store token and user data
                 localStorage.setItem('user', JSON.stringify(data));
+                localStorage.setItem('token', data.token);
 
                 // Login via context
                 login({

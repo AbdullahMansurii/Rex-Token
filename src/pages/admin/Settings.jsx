@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, AlertTriangle, Power, CreditCard, Lock } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const Settings = () => {
-    // Mock Settings State
+    const { user } = useAuth();
     const [settings, setSettings] = useState({
         siteName: "REX Token",
         maintenanceMode: false,
@@ -13,6 +15,29 @@ const Settings = () => {
     });
 
     const [isSaved, setIsSaved] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch(`${API_BASE_URL}/api/settings`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setSettings(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch settings", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (user) fetchSettings();
+    }, [user]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -23,10 +48,30 @@ const Settings = () => {
         setIsSaved(false);
     };
 
-    const handleSave = () => {
-        // Here we would save to backend
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 3000); // Hide success message after 3s
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+            const response = await fetch(`${API_BASE_URL}/api/settings`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(settings)
+            });
+
+            if (response.ok) {
+                setIsSaved(true);
+                setTimeout(() => setIsSaved(false), 3000);
+            } else {
+                console.error("Failed to save settings");
+            }
+        } catch (error) {
+            console.error("Error saving settings", error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -35,10 +80,11 @@ const Settings = () => {
                 <h1 className="text-2xl font-bold text-white">System Settings</h1>
                 <button
                     onClick={handleSave}
-                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition flex items-center gap-2"
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-lg transition flex items-center gap-2"
                 >
                     <Save className="w-4 h-4" />
-                    {isSaved ? "Saved!" : "Save Changes"}
+                    {isSaving ? "Saving..." : isSaved ? "Saved!" : "Save Changes"}
                 </button>
             </div>
 

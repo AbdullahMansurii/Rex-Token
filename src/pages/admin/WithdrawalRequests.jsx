@@ -32,8 +32,14 @@ const WithdrawalRequests = () => {
         fetchRequests();
     }, [user]);
 
-    const handleStatusUpdate = async (id, status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this request?`)) return;
+    const handleStatusUpdate = async (id, action) => {
+        const statusMap = {
+            'Approve': 'completed',
+            'Reject': 'rejected'
+        };
+        const newStatus = statusMap[action];
+
+        if (!window.confirm(`Are you sure you want to ${action.toLowerCase()} this request?`)) return;
 
         try {
             const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
@@ -43,13 +49,16 @@ const WithdrawalRequests = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status })
+                body: JSON.stringify({ status: newStatus })
             });
 
             if (response.ok) {
                 const updatedRequest = await response.json();
                 setRequests(requests.map(req => req._id === id ? updatedRequest : req));
-                alert(`Request ${status} successfully`);
+                alert(`Request ${action.toLowerCase()}d successfully`);
+            } else {
+                const error = await response.json();
+                alert(`Failed to update: ${error.message}`);
             }
         } catch (error) {
             console.error("Failed to update status", error);
@@ -58,7 +67,13 @@ const WithdrawalRequests = () => {
 
     const filteredRequests = filter === "All"
         ? requests
-        : requests.filter(req => req.status === filter);
+        : requests.filter(req => {
+            const status = req.status.toLowerCase();
+            if (filter === "Pending") return status === 'pending';
+            if (filter === "Approved") return status === 'completed' || status === 'approved';
+            if (filter === "Rejected") return status === 'rejected' || status === 'failed';
+            return status === filter.toLowerCase();
+        });
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
@@ -67,10 +82,10 @@ const WithdrawalRequests = () => {
 
     // Calculate Stats
     const stats = [
-        { label: "Pending Requests", value: requests.filter(r => r.status === 'Pending').length, icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: "Approved Total", value: requests.filter(r => r.status === 'Approved').length, icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-500/10" },
+        { label: "Pending Requests", value: requests.filter(r => r.status.toLowerCase() === 'pending').length, icon: Clock, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+        { label: "Approved Total", value: requests.filter(r => r.status.toLowerCase() === 'completed' || r.status.toLowerCase() === 'approved').length, icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-500/10" },
         { label: "Total Amount", value: `₹${requests.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}`, icon: DollarSign, color: "text-primary", bgColor: "bg-primary/10" },
-        { label: "Rejected Total", value: requests.filter(r => r.status === 'Rejected').length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
+        { label: "Rejected Total", value: requests.filter(r => r.status.toLowerCase() === 'rejected' || r.status.toLowerCase() === 'failed').length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
     ];
 
     return (
@@ -152,36 +167,36 @@ const WithdrawalRequests = () => {
                                         </td>
                                         <td className="p-4">
                                             {req.method === 'Crypto' ? (
-                                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => copyToClipboard(req.walletAddress)}>
-                                                    <span className="text-gray-400 text-xs font-mono group-hover:text-primary transition truncate max-w-[150px] inline-block">{req.walletAddress}</span>
+                                                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => copyToClipboard(req.hash || req.walletAddress)}>
+                                                    <span className="text-gray-400 text-xs font-mono group-hover:text-primary transition truncate max-w-[150px] inline-block">{req.hash || req.walletAddress || '-'}</span>
                                                     <Copy className="w-3 h-3 text-gray-600 group-hover:text-primary opacity-0 group-hover:opacity-100 transition" />
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400 text-xs">{req.bankDetails}</span>
+                                                <span className="text-gray-400 text-xs">{req.hash || req.bankDetails || '-'}</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-gray-400 text-xs">{new Date(req.createdAt).toLocaleString()}</td>
                                         <td className="p-4">
                                             <span className={clsx(
                                                 "px-3 py-1 rounded-full text-xs font-bold capitalize",
-                                                req.status === 'Approved' && "bg-green-500/10 text-green-500",
-                                                req.status === 'Pending' && "bg-yellow-500/10 text-yellow-500",
-                                                req.status === 'Rejected' && "bg-red-500/10 text-red-500"
+                                                ['completed', 'approved'].includes(req.status.toLowerCase()) && "bg-green-500/10 text-green-500",
+                                                req.status.toLowerCase() === 'pending' && "bg-yellow-500/10 text-yellow-500",
+                                                ['rejected', 'failed'].includes(req.status.toLowerCase()) && "bg-red-500/10 text-red-500"
                                             )}>
-                                                {req.status}
+                                                {req.status === 'completed' ? 'Approved' : req.status}
                                             </span>
                                         </td>
                                         <td className="p-4 text-right">
-                                            {req.status === 'Pending' && (
+                                            {req.status.toLowerCase() === 'pending' && (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
-                                                        onClick={() => handleStatusUpdate(req._id, 'Approved')}
+                                                        onClick={() => handleStatusUpdate(req._id, 'Approve')}
                                                         className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-green-500/20"
                                                     >
                                                         Approve
                                                     </button>
                                                     <button
-                                                        onClick={() => handleStatusUpdate(req._id, 'Rejected')}
+                                                        onClick={() => handleStatusUpdate(req._id, 'Reject')}
                                                         className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-red-500/20"
                                                     >
                                                         Reject

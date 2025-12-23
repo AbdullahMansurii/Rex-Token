@@ -1,34 +1,46 @@
-import { Network, Filter, Users, Layers, DollarSign, ChevronDown, Check } from "lucide-react";
-import { useState } from "react";
+import { Network, Filter, Users, Layers, DollarSign, ChevronDown, Check, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const LevelIncome = () => {
+    const { user } = useAuth();
+    const [transactions, setTransactions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [selectedLevel, setSelectedLevel] = useState("all");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // Mock Data (Expanded to 10 Levels)
-    const stats = {
-        totalIncome: "₹393.45",
-        totalMembers: "68",
-        activeLevels: "10"
-    };
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch(`${API_BASE_URL}/api/transactions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setTransactions(data.filter(tx => tx.type === 'level_income'));
+                }
+            } catch (error) {
+                console.error("Failed to fetch level income", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    const breakdown = [
-        { level: 1, members: 5, investment: "₹2,500", comm: "5%", income: "₹125.00" },
-        { level: 2, members: 12, investment: "₹6,800", comm: "3%", income: "₹204.00" },
-        { level: 3, members: 8, investment: "₹4,200", comm: "1%", income: "₹42.00" },
-        { level: 4, members: 3, investment: "₹1,500", comm: "0.5%", income: "₹7.50" },
-        { level: 5, members: 7, investment: "₹3,500", comm: "0.3%", income: "₹10.50" },
-        { level: 6, members: 2, investment: "₹1,000", comm: "0.2%", income: "₹2.00" },
-        { level: 7, members: 4, investment: "₹2,200", comm: "0.1%", income: "₹2.20" },
-        { level: 8, members: 1, investment: "₹500", comm: "0.05%", income: "₹0.25" },
-        { level: 9, members: 3, investment: "₹1,200", comm: "0.05%", income: "₹0.60" },
-        { level: 10, members: 5, investment: "₹2,000", comm: "0.05%", income: "₹1.00" },
-    ];
+        if (user) fetchTransactions();
+    }, [user]);
+
+    // Calculate Stats
+    const totalIncome = transactions.reduce((acc, t) => acc + t.amount, 0);
+    // Unique members who triggered level income (mock proxy: count transactions)
+    const totalMembers = transactions.length;
+    const activeLevels = [...new Set(transactions.map(t => t.description?.match(/Level (\d+)/)?.[1] || "1"))].length;
 
     // Filter Logic
     const filteredData = selectedLevel === "all"
-        ? breakdown
-        : breakdown.filter(item => item.level === parseInt(selectedLevel));
+        ? transactions
+        : transactions.filter(t => t.description?.includes(`Level ${selectedLevel}`));
 
     return (
         <div className="space-y-8" onClick={() => setIsDropdownOpen(false)}>
@@ -91,18 +103,18 @@ const LevelIncome = () => {
                     </div>
                     <div className="relative z-10">
                         <p className="text-gray-400 text-sm font-medium mb-1">Total Level Income</p>
-                        <h2 className="text-4xl font-bold text-purple-500">{stats.totalIncome}</h2>
+                        <h2 className="text-4xl font-bold text-purple-500">₹{totalIncome.toLocaleString()}</h2>
                     </div>
                 </div>
 
-                {/* Total Network Members */}
+                {/* Total Transactions */}
                 <div className="bg-surface border border-white/5 rounded-2xl p-6 relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
                         <Users className="w-24 h-24 text-blue-500" />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-gray-400 text-sm font-medium mb-1">Total Network Members</p>
-                        <h2 className="text-4xl font-bold text-blue-500">{stats.totalMembers}</h2>
+                        <p className="text-gray-400 text-sm font-medium mb-1">Total Transactions</p>
+                        <h2 className="text-4xl font-bold text-blue-500">{totalMembers}</h2>
                     </div>
                 </div>
 
@@ -112,46 +124,50 @@ const LevelIncome = () => {
                         <Layers className="w-24 h-24 text-green-500" />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-gray-400 text-sm font-medium mb-1">Active Levels</p>
-                        <h2 className="text-4xl font-bold text-green-500">{stats.activeLevels}</h2>
+                        <p className="text-gray-400 text-sm font-medium mb-1">Active Levels Earnings</p>
+                        <h2 className="text-4xl font-bold text-green-500">{activeLevels}</h2>
                     </div>
                 </div>
             </div>
 
             {/* Breakdown Table */}
             <div>
-                <h2 className="text-xl font-bold text-purple-400 mb-6">Level Income Breakdown</h2>
+                <h2 className="text-xl font-bold text-purple-400 mb-6">Level Income History</h2>
                 <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden min-h-[500px]">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-[#0f0f13] text-gray-400 border-b border-white/5">
                                 <tr>
-                                    <th className="p-5 font-medium text-sm">Level</th>
-                                    <th className="p-5 font-medium text-sm">Members</th>
-                                    <th className="p-5 font-medium text-sm">Total Investment</th>
-                                    <th className="p-5 font-medium text-sm">Commission %</th>
-                                    <th className="p-5 font-medium text-sm">Income</th>
+                                    <th className="p-5 font-medium text-sm">Description</th>
+                                    <th className="p-5 font-medium text-sm">Date</th>
+                                    <th className="p-5 font-medium text-sm">Amount</th>
+                                    <th className="p-5 font-medium text-sm">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {filteredData.length > 0 ? (
+                                {isLoading ? (
+                                    <tr><td colSpan="4" className="p-8 text-center text-gray-400">Loading data...</td></tr>
+                                ) : filteredData.length > 0 ? (
                                     filteredData.map((row) => (
-                                        <tr key={row.level} className="hover:bg-white/5 transition group animate-fadeIn">
-                                            <td className="p-5">
-                                                <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs group-hover:bg-primary group-hover:text-white transition shadow-[0_0_10px_rgba(124,58,237,0.1)] group-hover:shadow-[0_0_15px_rgba(124,58,237,0.4)]">
-                                                    {row.level}
-                                                </div>
+                                        <tr key={row._id} className="hover:bg-white/5 transition group animate-fadeIn">
+                                            <td className="p-5 text-white font-medium">{row.description || "Level Income"}</td>
+                                            <td className="p-5 text-gray-300">{new Date(row.createdAt).toLocaleDateString()}</td>
+                                            <td className="p-5 text-purple-400 font-bold">₹{row.amount}</td>
+                                            <td className="p-5 text-gray-400">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${['completed', 'paid'].includes(row.status.toLowerCase())
+                                                    ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                                    : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                                    }`}>
+                                                    {['completed', 'paid'].includes(row.status.toLowerCase()) ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                                    {row.status}
+                                                </span>
                                             </td>
-                                            <td className="p-5 text-white font-medium">{row.members}</td>
-                                            <td className="p-5 text-gray-300">{row.investment}</td>
-                                            <td className="p-5 text-gray-400">{row.comm}</td>
-                                            <td className="p-5 text-purple-400 font-bold">{row.income}</td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" className="p-10 text-center text-gray-500">
-                                            No data found for this level.
+                                        <td colSpan="4" className="p-10 text-center text-gray-500">
+                                            No level income records found.
                                         </td>
                                     </tr>
                                 )}

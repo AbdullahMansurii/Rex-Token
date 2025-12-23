@@ -1,19 +1,44 @@
+import { useState, useEffect } from "react";
 import { DollarSign, Users, Clock, Calendar, CheckCircle, AlertCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 const ReferralIncome = () => {
-    // Mock Data matching the reference image
-    const stats = {
-        totalIncome: "₹255.00",
-        pendingIncome: "₹75.00",
-        totalReferrals: 4
-    };
+    const { user } = useAuth();
+    const [transactions, setTransactions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const transactions = [
-        { id: 1, name: "Alice Johnson", date: "2024-01-01", amount: "₹50", status: "Paid" },
-        { id: 2, name: "Bob Smith", date: "2024-01-05", amount: "₹100", status: "Paid" },
-        { id: 3, name: "Carol Davis", date: "2024-01-10", amount: "₹30", status: "Paid" },
-        { id: 4, name: "David Wilson", date: "2024-01-12", amount: "₹75", status: "Pending" },
-    ];
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch(`${API_BASE_URL}/api/transactions`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setTransactions(data.filter(tx => tx.type === 'referral'));
+                }
+            } catch (error) {
+                console.error("Failed to fetch referral transactions", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (user) fetchTransactions();
+    }, [user]);
+
+    // Calculate Stats
+    const totalIncome = transactions
+        .filter(t => t.status === 'completed')
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const pendingIncome = transactions
+        .filter(t => t.status === 'pending')
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const totalReferrals = transactions.length; // Approximate, distinct users logic would be better but this is simplified
 
     return (
         <div className="space-y-8">
@@ -32,7 +57,7 @@ const ReferralIncome = () => {
                     </div>
                     <div className="relative z-10">
                         <p className="text-gray-400 text-sm font-medium mb-1">Total Referral Income</p>
-                        <h2 className="text-4xl font-bold text-purple-500">{stats.totalIncome}</h2>
+                        <h2 className="text-4xl font-bold text-purple-500">₹{totalIncome.toLocaleString()}</h2>
                     </div>
                 </div>
 
@@ -43,18 +68,18 @@ const ReferralIncome = () => {
                     </div>
                     <div className="relative z-10">
                         <p className="text-gray-400 text-sm font-medium mb-1">Pending Income</p>
-                        <h2 className="text-4xl font-bold text-yellow-500">{stats.pendingIncome}</h2>
+                        <h2 className="text-4xl font-bold text-yellow-500">₹{pendingIncome.toLocaleString()}</h2>
                     </div>
                 </div>
 
-                {/* Total Referrals */}
+                {/* Total Transactions Count */}
                 <div className="bg-surface border border-white/5 rounded-2xl p-6 relative overflow-hidden group hover:border-green-500/30 transition-all duration-300">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
                         <Users className="w-24 h-24 text-green-500" />
                     </div>
                     <div className="relative z-10">
-                        <p className="text-gray-400 text-sm font-medium mb-1">Total Referrals</p>
-                        <h2 className="text-4xl font-bold text-green-500">{stats.totalReferrals}</h2>
+                        <p className="text-gray-400 text-sm font-medium mb-1">Total Transactions</p>
+                        <h2 className="text-4xl font-bold text-green-500">{totalReferrals}</h2>
                     </div>
                 </div>
             </div>
@@ -68,35 +93,41 @@ const ReferralIncome = () => {
                         <table className="w-full text-left">
                             <thead className="bg-[#0f0f13] text-gray-400 border-b border-white/5">
                                 <tr>
-                                    <th className="p-5 font-medium text-sm">Referral Name</th>
+                                    <th className="p-5 font-medium text-sm">Description</th>
                                     <th className="p-5 font-medium text-sm">Date</th>
                                     <th className="p-5 font-medium text-sm">Amount</th>
                                     <th className="p-5 font-medium text-sm">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {transactions.map((tx) => (
-                                    <tr key={tx.id} className="hover:bg-white/5 transition group">
-                                        <td className="p-5">
-                                            <span className="text-white font-medium group-hover:text-purple-400 transition">{tx.name}</span>
-                                        </td>
-                                        <td className="p-5 text-gray-400 text-sm flex items-center gap-2">
-                                            {tx.date}
-                                        </td>
-                                        <td className="p-5 text-white font-bold">
-                                            {tx.amount}
-                                        </td>
-                                        <td className="p-5">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${tx.status === 'Paid'
-                                                ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                                }`}>
-                                                {tx.status === 'Paid' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                                                {tx.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {isLoading ? (
+                                    <tr><td colSpan="4" className="p-8 text-center text-gray-400">Loading data...</td></tr>
+                                ) : transactions.length === 0 ? (
+                                    <tr><td colSpan="4" className="p-8 text-center text-gray-400">No referral transactions found.</td></tr>
+                                ) : (
+                                    transactions.map((tx) => (
+                                        <tr key={tx._id} className="hover:bg-white/5 transition group">
+                                            <td className="p-5">
+                                                <span className="text-white font-medium group-hover:text-purple-400 transition">{tx.description || "Referral Bonus"}</span>
+                                            </td>
+                                            <td className="p-5 text-gray-400 text-sm flex items-center gap-2">
+                                                {new Date(tx.createdAt).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-5 text-white font-bold">
+                                                ₹{tx.amount}
+                                            </td>
+                                            <td className="p-5">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${['completed', 'paid'].includes(tx.status.toLowerCase())
+                                                    ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                                    : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                                    }`}>
+                                                    {['completed', 'paid'].includes(tx.status.toLowerCase()) ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                                    {tx.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

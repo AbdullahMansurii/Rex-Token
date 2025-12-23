@@ -1,23 +1,46 @@
 import { User, Mail, Users, Calculator, TrendingUp, Award, ChevronRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useState, useEffect } from "react";
+import { API_BASE_URL } from "../../config";
 
 const Downline = () => {
     const { user } = useAuth();
+    const [stats, setStats] = useState({
+        totalNetwork: 0,
+        networkGrowth: "0%",
+        overallBusiness: "₹0",
+        totalCommission: "₹0"
+    });
+    const [level1Count, setLevel1Count] = useState(0);
 
-    // Mock Data based on reference image
-    const stats = {
-        totalNetwork: 125,
-        networkGrowth: "+12%",
-        overallBusiness: "₹15,75,000",
-        totalCommission: "₹1,47,500"
-    };
+    useEffect(() => {
+        const fetchDownline = async () => {
+            try {
+                const token = user?.token || JSON.parse(localStorage.getItem('user'))?.token;
+                const response = await fetch(`${API_BASE_URL}/api/users/downline`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    setStats(data.stats);
+                    setLevel1Count(data.level1?.length || 0);
+                }
+            } catch (error) {
+                console.error("Failed to fetch downline", error);
+            }
+        };
 
+        if (user) fetchDownline();
+    }, [user]);
+
+    // Construct levels array dynamically based on fetched data
+    // We only have real data for Level 1 currently
     const levels = [
-        { level: 1, members: 45, volume: "₹5,25,000", growth: "+15%", commission: "₹52,500", rate: "10%", progress: 20 },
-        { level: 2, members: 32, volume: "₹3,80,000", growth: "+15%", commission: "₹38,000", rate: "10%", progress: 40 },
-        { level: 3, members: 25, volume: "₹2,95,000", growth: "+15%", commission: "₹29,500", rate: "10%", progress: 60 },
-        { level: 4, members: 15, volume: "₹1,75,000", growth: "+15%", commission: "₹17,500", rate: "10%", progress: 80 },
-        { level: 5, members: 8, volume: "₹1,00,000", growth: "+15%", commission: "₹10,000", rate: "10%", progress: 100 },
+        { level: 1, members: level1Count, volume: "₹0", growth: "0%", commission: "₹0", rate: "10%", progress: level1Count > 0 ? 100 : 0 },
+        { level: 2, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "5%", progress: 0 },
+        { level: 3, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "3%", progress: 0 },
+        { level: 4, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "2%", progress: 0 },
+        { level: 5, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "1%", progress: 0 },
     ];
 
     return (
@@ -44,7 +67,7 @@ const Downline = () => {
                                 </div>
                                 <span className="text-xs text-gray-400">User ID</span>
                             </div>
-                            <p className="text-lg font-bold text-white">{user?.id || "SG2024001"}</p>
+                            <p className="text-lg font-bold text-white uppercase">{user?._id?.slice(-8) || "UNKNOWN"}</p>
                         </div>
 
                         {/* Full Name */}
@@ -55,7 +78,7 @@ const Downline = () => {
                                 </div>
                                 <span className="text-xs text-gray-400">Full Name</span>
                             </div>
-                            <p className="text-lg font-bold text-white truncate">{user?.name || "Nirmalaben Sureshbhai Patel"}</p>
+                            <p className="text-lg font-bold text-white truncate">{user?.name || "Unknown User"}</p>
                         </div>
 
                         {/* Email */}
@@ -66,7 +89,7 @@ const Downline = () => {
                                 </div>
                                 <span className="text-xs text-gray-400">Email Address</span>
                             </div>
-                            <p className="text-lg font-bold text-white truncate">{user?.email || "nirmalaben@example.com"}</p>
+                            <p className="text-lg font-bold text-white truncate">{user?.email || "unknown@example.com"}</p>
                         </div>
 
                         {/* Total Network */}
@@ -106,7 +129,9 @@ const Downline = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Active Levels:</span>
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-bold text-white text-sm">5</div>
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-bold text-white text-sm">
+                            {levels.filter(l => l.members > 0).length}
+                        </div>
                     </div>
                 </div>
 
@@ -133,9 +158,9 @@ const Downline = () => {
                                         <div>
                                             <p className="text-white font-bold text-sm">Level {lvl.level}</p>
                                             <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
-                                                <div className="h-full bg-primary" style={{ width: `${(lvl.members / 45) * 100}%` }}></div>
+                                                <div className="h-full bg-primary" style={{ width: `${(lvl.members / (stats.totalNetwork || 1)) * 100}%` }}></div>
                                             </div>
-                                            <p className="text-[10px] text-gray-500 mt-0.5">{lvl.members} members</p>
+                                            {/*<p className="text-[10px] text-gray-500 mt-0.5">{lvl.members} members</p>*/}
                                         </div>
                                     </div>
                                 </div>
@@ -149,7 +174,7 @@ const Downline = () => {
                                 <div className="col-span-3">
                                     <p className="text-lg font-bold text-white">{lvl.volume}</p>
                                     <p className="text-xs text-green-400 flex items-center gap-1">
-                                        <TrendingUp className="w-3 h-3" /> {lvl.growth} growth
+                                        <TrendingUp className="w-3 h-3" /> {lvl.growth}
                                     </p>
                                 </div>
 

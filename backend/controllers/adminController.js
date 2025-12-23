@@ -2,7 +2,8 @@ const User = require('../models/User');
 const KYC = require('../models/KYC');
 const Withdrawal = require('../models/Withdrawal');
 const Transaction = require('../models/Transaction');
-const Package = require('../models/Package');
+const Investment = require('../models/Investment');
+const SystemSetting = require('../models/SystemSetting');
 
 // @desc    Get Admin Dashboard Stats
 // @route   GET /api/admin/stats
@@ -17,7 +18,7 @@ const getDashboardStats = async (req, res) => {
             pendingWithdrawals,
             totalWithdrawals,
             totalTransactions,
-            activePackages
+            activeInvestments
         ] = await Promise.all([
             User.countDocuments({ role: 'user' }),
             User.countDocuments({ role: 'user', createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }),
@@ -28,7 +29,7 @@ const getDashboardStats = async (req, res) => {
                 { $group: { _id: null, total: { $sum: "$amount" } } }
             ]),
             Transaction.countDocuments({}),
-            Package.countDocuments({ status: 'Active' })
+            Investment.countDocuments({ status: 'active' })
         ]);
 
         res.json({
@@ -38,7 +39,7 @@ const getDashboardStats = async (req, res) => {
             pendingWithdrawals,
             totalWithdrawn: totalWithdrawals[0]?.total || 0,
             totalTransactions,
-            activePackages
+            activePackages: activeInvestments // Keep 'activePackages' key for frontend compatibility
         });
     } catch (error) {
         console.error(error);
@@ -110,8 +111,6 @@ const deleteUser = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
-
-const SystemSetting = require('../models/SystemSetting');
 
 // @desc    Get Token Price
 // @route   GET /api/admin/settings/price

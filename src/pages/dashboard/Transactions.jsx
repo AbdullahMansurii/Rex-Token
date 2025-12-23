@@ -63,26 +63,26 @@ const Transactions = () => {
                                     <tr key={tx._id} className="hover:bg-white/5 transition">
                                         <td className="p-4">
                                             <span className="flex items-center gap-2 text-white font-medium">
-                                                {tx.type === 'Withdrawal' ? (
+                                                {tx.type.toLowerCase() === 'withdrawal' ? (
                                                     <ArrowUpRight className="w-4 h-4 text-red-400" />
                                                 ) : (
                                                     <ArrowDownLeft className="w-4 h-4 text-green-400" />
                                                 )}
-                                                {tx.type} ({tx.description})
+                                                {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)} <span className="text-gray-500 text-xs">({tx.description})</span>
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-400">{new Date(tx.createdAt).toLocaleString()}</td>
-                                        <td className="p-4 text-gray-300">{tx.method}</td>
+                                        <td className="p-4 text-gray-300">{tx.method || tx.hash || '-'}</td>
                                         <td className="p-4">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${tx.status === 'Completed' ? 'bg-green-500/10 text-green-400' :
-                                                tx.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${tx.status.toLowerCase() === 'completed' || tx.status.toLowerCase() === 'approved' ? 'bg-green-500/10 text-green-400' :
+                                                tx.status.toLowerCase() === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
                                                     'bg-red-500/10 text-red-400'
                                                 }`}>
-                                                {tx.status}
+                                                {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                                             </span>
                                         </td>
-                                        <td className={`p-4 text-right font-bold ${tx.type === 'Withdrawal' ? 'text-red-400' : 'text-green-400'}`}>
-                                            {tx.type === 'Withdrawal' ? '-' : '+'}₹{tx.amount}
+                                        <td className={`p-4 text-right font-bold ${tx.type.toLowerCase() === 'withdrawal' ? 'text-red-400' : 'text-green-400'}`}>
+                                            {tx.type.toLowerCase() === 'withdrawal' ? '-' : '+'}₹{tx.amount}
                                         </td>
                                     </tr>
                                 ))

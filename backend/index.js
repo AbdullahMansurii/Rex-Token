@@ -36,6 +36,8 @@ app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/investments', require('./routes/investmentRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/settings', require('./routes/settingRoutes'));
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));

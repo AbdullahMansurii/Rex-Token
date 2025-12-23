@@ -9,7 +9,7 @@ const investmentSchema = new mongoose.Schema({
     package: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Package',
-        required: true,
+        required: false,
     },
     amount: {
         type: Number,
@@ -33,8 +33,8 @@ const investmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'completed', 'terminated'],
-        default: 'active',
+        enum: ['pending', 'active', 'completed', 'terminated'],
+        default: 'pending',
     },
     lastroiDate: {
         type: Date,

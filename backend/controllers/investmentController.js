@@ -1,6 +1,7 @@
 const Investment = require('../models/Investment');
 const Package = require('../models/Package');
 const User = require('../models/User');
+const Transaction = require('../models/Transaction');
 
 // @desc    Create new investment
 // @route   POST /api/investments
@@ -14,35 +15,42 @@ const createInvestment = async (req, res) => {
             return res.status(400).json({ message: 'Please provide amount and transaction ID' });
         }
 
-        // Find applicable package
-        const pkg = await Package.findOne({
-            minInvestment: { $lte: amount },
-            maxInvestment: { $gte: amount },
-            status: 'Active'
-        });
-
-        if (!pkg) {
-            return res.status(400).json({ message: 'No active package found for this amount' });
+        if (amount < 500) {
+            return res.status(400).json({ message: 'Minimum investment amount is 500' });
         }
 
-        // Calculate returns
-        const dailyReturn = pkg.roi;
+        // Default Logic (Since Packages are removed)
+        // Example: 0.5% Daily for 400 Days (200% Total)
+        const dailyReturn = 0.5;
         const dailyReturnAmount = (amount * dailyReturn) / 100;
+        const duration = 400; // days (can be changed later or moved to settings)
+
+        // Calculate expected endDate (will be reset on approval)
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() + pkg.duration);
+        endDate.setDate(endDate.getDate() + duration);
 
         const investment = await Investment.create({
             user: req.user._id,
-            package: pkg._id,
+            // package: null, // No package
             amount,
             dailyReturn,
             dailyReturnAmount,
             // startDate: Date.now(), // Admin will set this on approval
-            endDate, // This might need recalculation on approval
+            endDate,
             status: 'pending', // Default to pending
             transactionId,
             sponsorId: sponsorId || "",
             paymentSlip
+        });
+
+        // Create corresponding Transaction
+        await Transaction.create({
+            user: req.user._id,
+            type: 'investment',
+            amount: amount,
+            status: 'pending',
+            hash: transactionId,
+            description: `Investment Request for ₹${amount}`
         });
 
         res.status(201).json(investment);
@@ -89,7 +97,7 @@ const getAllInvestments = async (req, res) => {
 const updateInvestmentStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const investment = await Investment.findById(req.params.id).populate('package');
+        const investment = await Investment.findById(req.params.id); // No need to populate package
 
         if (!investment) {
             return res.status(404).json({ message: 'Investment not found' });
@@ -100,12 +108,25 @@ const updateInvestmentStatus = async (req, res) => {
         // If activating, set start and end dates
         if (status === 'active' && !investment.startDate) {
             investment.startDate = Date.now();
+
+            // Calculate End Date: Default 400 days logic
+            const duration = 400; // Hardcoded logic for now
             const endDate = new Date();
-            endDate.setDate(endDate.getDate() + investment.package.duration);
+            endDate.setDate(endDate.getDate() + duration);
             investment.endDate = endDate;
         }
 
         await investment.save();
+
+        // Sync Transaction Status
+        let txnStatus = 'pending';
+        if (status === 'active') txnStatus = 'completed';
+        if (status === 'terminated' || status === 'rejected') txnStatus = 'rejected';
+
+        await Transaction.findOneAndUpdate(
+            { hash: investment.transactionId, type: 'investment' },
+            { status: txnStatus }
+        );
         res.json(investment);
     } catch (error) {
         console.error(error);

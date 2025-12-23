@@ -34,9 +34,9 @@ const TransactionMonitor = () => {
     // Calculate Stats
     const stats = [
         { label: "Total Transactions", value: transactions.length, icon: Repeat, color: "text-blue-500", bgColor: "bg-blue-500/10" },
-        { label: "Total Volume", value: `₹${transactions.reduce((acc, t) => acc + (t.status === 'Completed' ? t.amount : 0), 0).toLocaleString()}`, icon: DollarSign, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
-        { label: "Pending", value: transactions.filter(t => t.status === 'Pending').length, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-500/10" },
-        { label: "Failed/Rejected", value: transactions.filter(t => t.status === 'Failed' || t.status === 'Rejected').length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
+        { label: "Total Volume", value: `₹${transactions.reduce((acc, t) => acc + (t.status.toLowerCase() === 'completed' || t.status.toLowerCase() === 'approved' ? t.amount : 0), 0).toLocaleString()}`, icon: DollarSign, color: "text-yellow-500", bgColor: "bg-yellow-500/10" },
+        { label: "Pending", value: transactions.filter(t => t.status.toLowerCase() === 'pending').length, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-500/10" },
+        { label: "Failed/Rejected", value: transactions.filter(t => ['failed', 'rejected'].includes(t.status.toLowerCase())).length, icon: XCircle, color: "text-red-500", bgColor: "bg-red-500/10" },
     ];
 
     const filteredTransactions = filter === "All"
@@ -111,28 +111,28 @@ const TransactionMonitor = () => {
                                     <tr key={txn._id} className="hover:bg-white/5 transition bg-zinc-900/50">
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
-                                                {txn.type === 'Deposit' && <ArrowDownLeft className="w-4 h-4 text-green-500" />}
-                                                {txn.type === 'Withdrawal' && <ArrowUpRight className="w-4 h-4 text-red-500" />}
-                                                {txn.type === 'Investment' && <Repeat className="w-4 h-4 text-blue-500" />}
-                                                {txn.type === 'Referral' && <Users className="w-4 h-4 text-purple-500" />}
-                                                <span className="font-bold text-white">{txn.type}</span>
+                                                {txn.type.toLowerCase() === 'deposit' && <ArrowDownLeft className="w-4 h-4 text-green-500" />}
+                                                {txn.type.toLowerCase() === 'withdrawal' && <ArrowUpRight className="w-4 h-4 text-red-500" />}
+                                                {txn.type.toLowerCase() === 'investment' && <Repeat className="w-4 h-4 text-blue-500" />}
+                                                {txn.type.toLowerCase() === 'referral' && <Users className="w-4 h-4 text-purple-500" />}
+                                                <span className="font-bold text-white">{txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}</span>
                                             </div>
                                         </td>
                                         <td className="p-4">
                                             <p className="text-white font-bold">{txn.user?.name || 'Unknown'}</p>
                                             <p className="text-gray-500 text-xs">{txn.user?.email || 'N/A'}</p>
                                         </td>
-                                        <td className={clsx("p-4 font-bold", txn.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500')}>
-                                            {txn.type === 'Withdrawal' ? '-' : '+'}₹{txn.amount}
+                                        <td className={clsx("p-4 font-bold", txn.type.toLowerCase() === 'withdrawal' ? 'text-red-500' : 'text-green-500')}>
+                                            {txn.type.toLowerCase() === 'withdrawal' ? '-' : '+'}₹{txn.amount}
                                         </td>
-                                        <td className="p-4 text-gray-400">{txn.method}</td>
+                                        <td className="p-4 text-gray-400">{txn.method || txn.hash || '-'}</td>
                                         <td className="p-4">
                                             <span className={clsx(
                                                 "px-2.5 py-1 rounded-full text-xs font-bold",
-                                                txn.status === 'Completed' || txn.status === 'Approved' ? 'bg-green-500/10 text-green-500' :
-                                                    txn.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
+                                                ['completed', 'approved'].includes(txn.status.toLowerCase()) ? 'bg-green-500/10 text-green-500' :
+                                                    txn.status.toLowerCase() === 'pending' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
                                             )}>
-                                                {txn.status === 'Approved' ? 'Completed' : txn.status}
+                                                {txn.status.charAt(0).toUpperCase() + txn.status.slice(1)}
                                             </span>
                                         </td>
                                         <td className="p-4 text-right text-gray-500 text-xs">{new Date(txn.createdAt).toLocaleString()}</td>

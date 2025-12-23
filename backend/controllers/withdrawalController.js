@@ -89,7 +89,18 @@ const updateWithdrawalStatus = async (req, res) => {
             return res.status(404).json({ message: 'Withdrawal not found' });
         }
 
-        withdrawal.status = status;
+        const statusMap = {
+            'approved': 'completed',
+            'approve': 'completed',
+            'completed': 'completed',
+            'rejected': 'rejected',
+            'reject': 'rejected',
+            'failed': 'failed'
+        };
+
+        const normalizedStatus = statusMap[status.toLowerCase()] || status;
+
+        withdrawal.status = normalizedStatus;
         await withdrawal.save();
 
         res.json(withdrawal);
