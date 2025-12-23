@@ -106,8 +106,8 @@ const Packages = () => {
 
                 {notification.message && (
                     <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-pulse border ${notification.type === 'success'
-                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
-                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                        : 'bg-red-500/10 border-red-500/20 text-red-400'
                         }`}>
                         {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                         <span>{notification.message}</span>
@@ -151,7 +151,15 @@ const Packages = () => {
                             <input
                                 type="file"
                                 className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
-                                onChange={(e) => setFormData({ ...formData, paymentSlip: e.target.files[0] })}
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file && file.size > 2 * 1024 * 1024) {
+                                        showNotification('error', "File size must be less than 2MB");
+                                        e.target.value = null;
+                                        return;
+                                    }
+                                    setFormData({ ...formData, paymentSlip: file });
+                                }}
                             />
                             <div className="flex items-center justify-between text-gray-400">
                                 <span className={formData.paymentSlip ? "text-white" : ""}>
