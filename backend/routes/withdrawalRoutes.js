@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const {
-    requestWithdrawal,
-    getWithdrawals,
+    createWithdrawal,
+    getMyWithdrawals,
     getAllWithdrawals,
     updateWithdrawalStatus
 } = require('../controllers/withdrawalController');
@@ -18,8 +18,8 @@ const admin = (req, res, next) => {
 };
 
 router.route('/')
-    .post(protect, requestWithdrawal)
-    .get(protect, getWithdrawals);
+    .post(protect, createWithdrawal)
+    .get(protect, getMyWithdrawals);
 
 router.route('/admin')
     .get(protect, admin, getAllWithdrawals);

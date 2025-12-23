@@ -11,7 +11,8 @@ const RegisterPage = () => {
         name: "",
         email: "",
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
+        referralCode: ""
     });
     const [error, setError] = useState("");
 
@@ -19,7 +20,7 @@ const RegisterPage = () => {
         e.preventDefault();
         setError("");
 
-        // Basic Validation
+        // BasicValidation
         if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
             setError("All fields are required.");
             return;
@@ -42,6 +43,7 @@ const RegisterPage = () => {
                     username: formData.name, // Mapping 'name' to 'username' as expected by backend
                     email: formData.email,
                     password: formData.password,
+                    referralCode: formData.referralCode // Sending referral code
                 }),
             });
 
@@ -132,6 +134,20 @@ const RegisterPage = () => {
                                     className="w-full pl-12 pr-4 py-3.5 bg-black/50 border border-white/10 rounded-xl text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-300 ml-1">Referral Code (Optional)</label>
+                            <div className="relative">
+                                <CheckCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                                <input
+                                    type="text"
+                                    placeholder="e.g. ABD7605"
+                                    className="w-full pl-12 pr-4 py-3.5 bg-black/50 border border-white/10 rounded-xl text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition uppercase"
+                                    value={formData.referralCode}
+                                    onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
                                 />
                             </div>
                         </div>

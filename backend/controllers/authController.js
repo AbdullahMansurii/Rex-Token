@@ -6,7 +6,7 @@ const User = require('../models/User');
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, referralCode } = req.body;
 
     if (!username || !email || !password) {
         return res.status(400).json({ message: 'Please add all fields' });
@@ -19,12 +19,34 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Find Sponsor if code provided
+    let sponsorId = null;
+    if (referralCode) {
+        const sponsor = await User.findOne({ referralCode });
+        if (sponsor) {
+            sponsorId = sponsor._id;
+            // Optionally increment sponsor's direct count immediately here or via hooks
+            sponsor.team.directs += 1;
+            sponsor.team.totalLines += 1; // Simplified total
+            await sponsor.save();
+        }
+    }
+
+    // Generate Unique Referral Code for new user
+    // Simple 7-char alphanumeric: 3 letters + 4 numbers
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const nums = '0123456789';
+    let newReferralCode = '';
+    for (let i = 0; i < 3; i++) newReferralCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 4; i++) newReferralCode += nums.charAt(Math.floor(Math.random() * nums.length));
+
     // Create user (password hashing handled by pre-save hook)
-    // Mapping 'username' from frontend to 'name' in database
     const user = await User.create({
         name: username,
         email,
         password,
+        referralCode: newReferralCode,
+        referredBy: sponsorId
     });
 
     if (user) {
@@ -36,7 +58,8 @@ const registerUser = async (req, res) => {
             token: generateToken(user._id),
             wallet: user.wallet,
             balance: user.balance,
-            phone: user.phone
+            phone: user.phone,
+            referralCode: user.referralCode
         });
     } else {
         res.status(400).json({ message: 'Invalid user data' });

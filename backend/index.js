@@ -34,6 +34,11 @@ app.use('/api/packages', require('./routes/packageRoutes'));
 app.use('/api/withdrawals', require('./routes/withdrawalRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/investments', require('./routes/investmentRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 
 app.get('/', (req, res) => {
     res.send('API is running...');

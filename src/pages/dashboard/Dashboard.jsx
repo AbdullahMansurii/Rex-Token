@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
     Wallet,
     Copy,
@@ -6,199 +7,235 @@ import {
     Activity,
     Award,
     Layers,
-    Cpu
+    Cpu,
+    User,
+    Users,
+    Loader2
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-
-const DashboardCard = ({ title, children, className = "" }) => (
-    <div className={`bg-surface border border-white/5 rounded-2xl p-6 shadow-glow-sm hover:border-primary/20 transition group ${className}`}>
-        <h3 className="text-gray-400 font-medium mb-4 flex items-center gap-2">
-            {title}
-        </h3>
-        {children}
-    </div>
-);
+import { API_BASE_URL } from "../../config";
 
 const DashboardHome = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const userName = user?.username || user?.name || "John Doe";
+    const [stats, setStats] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setStats(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard stats", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchStats();
+        }
+    }, [user]);
+
+    const userName = stats?.user?.name || user?.username || "User";
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-[500px]">
+                <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-6">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Welcome back, {userName}!</h1>
-                    <p className="text-gray-400">Track your earnings, manage your tokens, and grow your network all in one place.</p>
-                </div>
-                <button className="px-6 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-glow shadow-glow flex items-center gap-2 transition transform hover:scale-105">
-                    <Wallet className="w-4 h-4" />
-                    Connect Wallet
-                </button>
-            </div>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* 1. Welcome Section & Wallet Card */}
+            <div className="bg-[#1a0b2e] rounded-3xl p-8 relative overflow-hidden border border-purple-500/20">
+                {/* Background Glow */}
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-purple-900/40 to-transparent pointer-events-none" />
 
-            {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Wallet Balance Card (Wide) */}
-                <div className="lg:col-span-3 bg-gradient-to-r from-surface to-surface/50 border border-white/10 rounded-2xl p-8 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-
-                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div>
-                            <p className="text-gray-400 font-medium mb-1 flex items-center gap-2">
-                                <Wallet className="w-4 h-4 text-primary" /> Available Balance
-                            </p>
-                            <h2 className="text-5xl font-bold text-white tracking-tight mb-4">₹ 25,500.50</h2>
-                            <div className="flex gap-3">
-                                <button className="px-4 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg hover:bg-white/20 transition">
-                                    Connect Wallet
-                                </button>
-                                <button className="px-4 py-2 border border-white/10 text-gray-400 text-sm font-semibold rounded-lg hover:text-white hover:border-white/20 transition flex items-center gap-2">
-                                    <Copy className="w-3 h-3" /> Copy Address
-                                </button>
-                            </div>
-                        </div>
-                        {/* Visual element or chart could go here, kept simple per reference text */}
-                    </div>
-                </div>
-
-                {/* Token Overview */}
-                <DashboardCard title="Token Overview">
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg">
-                                    <Award className="w-5 h-5" />
-                                </div>
-                                <span className="text-gray-300 text-sm">Loyalty Points</span>
-                            </div>
-                            <span className="text-white font-bold">1,250</span>
-                        </div>
-
-                        <div className="flex justify-between items-center p-3 bg-black/20 rounded-xl border border-white/5">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                                    <Layers className="w-5 h-5" />
-                                </div>
-                                <span className="text-gray-300 text-sm">REX Token</span>
-                            </div>
-                            <span className="text-white font-bold">850</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 bg-black/20 rounded-xl border border-white/5 text-center">
-                                <p className="text-xs text-gray-500 mb-1">SGN Rate</p>
-                                <p className="text-white font-bold">₹2.5</p>
-                            </div>
-                            <div className="p-3 bg-black/20 rounded-xl border border-white/5 text-center">
-                                <p className="text-xs text-gray-500 mb-1">Current Phase</p>
-                                <p className="text-green-400 font-bold">Phase 3</p>
-                            </div>
-                        </div>
-                    </div>
-                </DashboardCard>
-
-                {/* Income Breakdown */}
-                <DashboardCard title="Income Breakdown">
-                    <div className="space-y-4">
-                        <div className="p-4 bg-green-500/5 border border-green-500/10 rounded-xl hover:bg-green-500/10 transition">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-gray-400 text-sm">ROI Income</span>
-                                <TrendingUp className="w-4 h-4 text-green-500" />
-                            </div>
-                            <h4 className="text-2xl font-bold text-white">₹ 1,200.50</h4>
-                        </div>
-
-                        <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl hover:bg-blue-500/10 transition">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-gray-400 text-sm">Yearly Bonus</span>
-                                <Zap className="w-4 h-4 text-blue-500" />
-                            </div>
-                            <h4 className="text-2xl font-bold text-white">₹ 800.00</h4>
-                        </div>
-
-                        <button
-                            onClick={() => navigate('/dashboard/transactions')}
-                            className="w-full py-2.5 text-sm font-bold text-primary border border-primary/20 rounded-lg hover:bg-primary/10 transition"
-                        >
-                            View Earnings Analytics
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-8 relative z-10">
+                    <div className="space-y-4 max-w-2xl">
+                        <h1 className="text-3xl md:text-4xl font-bold text-white">
+                            Welcome back, <span className="text-purple-400">{userName}!</span>
+                        </h1>
+                        <p className="text-gray-400 text-lg">
+                            Track your earnings, manage your tokens, and grow your network all in one place.
+                        </p>
+                        <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-purple-500/25 transition transform hover:-translate-y-1">
+                            Connect Wallet
                         </button>
                     </div>
-                </DashboardCard>
 
-                {/* Mining Center */}
-                <DashboardCard title="Mining Center">
-                    <div className="flex flex-col h-full justify-between">
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="relative flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                                </span>
-                                <span className="text-green-400 font-bold text-sm">Active & Running</span>
-                            </div>
-                            <p className="text-gray-400 text-sm mb-6">Your mining operations are running smoothly with maximum efficiency.</p>
-
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-1">Uptime</p>
-                                    <p className="text-white font-bold flex items-center gap-1">
-                                        <Activity className="w-4 h-4 text-primary" /> 99.8%
-                                    </p>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-1">Hashrate</p>
-                                    <p className="text-white font-bold flex items-center gap-1">
-                                        <Cpu className="w-4 h-4 text-primary" /> 145 TH/s
-                                    </p>
-                                </div>
+                    {/* Wallet Balance Card */}
+                    <div className="bg-[#0f0f0f] border border-white/10 rounded-2xl p-6 w-full lg:w-[400px] shadow-2xl">
+                        <div className="flex justify-between items-start mb-6">
+                            <h3 className="text-white font-bold text-lg">Wallet Balance</h3>
+                            <div className="p-2 bg-white/5 rounded-lg">
+                                <Wallet className="w-5 h-5 text-gray-400" />
                             </div>
                         </div>
+                        <div className="mb-6">
+                            <p className="text-xs text-gray-500 mb-1">Available Balance</p>
+                            <h2 className="text-4xl font-bold text-purple-400">₹{stats?.user?.walletBalance?.toFixed(2) || "0.00"}</h2>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button className="py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold rounded-lg hover:opacity-90 transition">
+                                Connect Wallet
+                            </button>
+                            <button
+                                onClick={() => navigator.clipboard.writeText(stats?.user?.walletBalance || "")}
+                                className="py-2.5 border border-white/20 text-gray-400 text-sm font-bold rounded-lg hover:bg-white/5 transition flex items-center justify-center gap-2"
+                            >
+                                <Copy className="w-4 h-4" /> Copy Address
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                        <button className="w-full py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-bold rounded-xl shadow-glow hover:opacity-90 transition">
+            {/* 2. Token Overview */}
+            <div>
+                <h3 className="text-xl font-bold text-purple-400 mb-4">Token Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-[#0f0f0f] border border-white/5 border-l-4 border-l-green-500 rounded-xl p-6 relative overflow-hidden group hover:bg-[#151515] transition">
+                        <div className="relative z-10">
+                            <p className="text-gray-400 text-sm mb-1">REX Token</p>
+                            <h2 className="text-3xl font-bold text-white">{stats?.token?.holding?.toLocaleString() || "0"}</h2>
+                        </div>
+                    </div>
+                    <div className="bg-[#0f0f0f] border border-white/5 border-l-4 border-l-yellow-500 rounded-xl p-6 relative overflow-hidden group hover:bg-[#151515] transition">
+                        <div className="relative z-10">
+                            <p className="text-gray-400 text-sm mb-1">REX Rate</p>
+                            <h2 className="text-3xl font-bold text-white">₹{stats?.token?.rate || "2.5"}</h2>
+                        </div>
+                    </div>
+                    <div className="bg-[#0f0f0f] border border-white/5 border-l-4 border-l-purple-500 rounded-xl p-6 relative overflow-hidden group hover:bg-[#151515] transition">
+                        <div className="relative z-10">
+                            <p className="text-gray-400 text-sm mb-1">Current Phase</p>
+                            <h2 className="text-3xl font-bold text-white">{stats?.token?.phase || "Phase 3"}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 3. Main Grid: Income Breakdown & Mining Center */}
+            <div className="grid lg:grid-cols-2 gap-8">
+
+                {/* Income Breakdown */}
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-bold text-purple-400">Income Breakdown</h3>
+                        <button
+                            onClick={() => navigate('/dashboard/transactions')}
+                            className="px-4 py-1.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition border border-white/10"
+                        >
+                            Earnings Analytics
+                        </button>
+                    </div>
+                    <div className="bg-[#111] border border-white/5 rounded-3xl p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { label: 'ROI', val: `₹${stats?.income?.roi?.toFixed(2) || "0.00"}`, color: 'border-l-purple-500' },
+                                { label: 'Yearly Bonus', val: `₹${stats?.income?.yearly?.toFixed(2) || "0.00"}`, color: 'border-l-cyan-500' },
+                                { label: 'Sponsor Income', val: `₹${stats?.income?.sponsor?.toFixed(2) || "0.00"}`, color: 'border-l-yellow-500' },
+                                { label: 'Total Income', val: `₹${stats?.income?.total?.toFixed(2) || "0.00"}`, color: 'border-l-pink-500' }
+                            ].map((item, i) => (
+                                <div key={i} className={`bg-[#0a0a0a] p-4 rounded-xl border border-white/5 border-l-4 ${item.color}`}>
+                                    <p className="text-gray-400 text-sm mb-1">{item.label}</p>
+                                    <h3 className="text-2xl font-bold text-white">{item.val}</h3>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mining Center */}
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-bold text-purple-400">Mining Center</h3>
+                        <button className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-lg">
                             Claim ROI
                         </button>
                     </div>
-                </DashboardCard>
+                    <div className="bg-[#111] border border-white/5 rounded-3xl p-6 h-[calc(100%-2.5rem)]">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-white">Status: <span className={stats?.mining?.status === 'Active' ? "text-green-500" : "text-gray-500"}>{stats?.mining?.status || "Inactive"}</span></span>
+                            </div>
+                            <span className="px-3 py-1 bg-green-500/10 text-green-500 text-xs font-bold rounded-full border border-green-500/20">{stats?.mining?.uptime || "0%"} Uptime</span>
+                        </div>
+                        <p className="text-gray-500 text-sm mb-8">{stats?.mining?.status === 'Active' ? "Your mining operations are running smoothly" : "Start investing to activate mining"}</p>
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-400 text-xs mb-1">Monthly Percentage</p>
+                                <h3 className="text-xl font-bold text-white">{stats?.mining?.monthlyPercentage || "0%"}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-400 text-xs mb-1">Total Invested</p>
+                                <h3 className="text-xl font-bold text-purple-400">₹{stats?.mining?.totalInvested?.toFixed(2) || "0.00"}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Referral Program Section (From Image) */}
-            <div>
-                <h2 className="text-xl font-bold text-primary mb-4">Referral Program</h2>
-                <div className="bg-surface/50 border border-white/5 rounded-2xl p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                        {/* Row 1 */}
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Your Referral ID</p>
-                            <h3 className="text-xl font-bold text-white">REF123456</h3>
-                        </div>
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Your Sponsor</p>
-                            <h3 className="text-xl font-bold text-white">Alice Smith</h3>
+            {/* 4. Bottom Grid: Current Phase & Referral Program */}
+            <div className="grid lg:grid-cols-2 gap-8">
+
+                {/* Current Phase */}
+                <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-purple-400">Current Phase</h3>
+                    <div className="bg-[#13131f] border border-white/5 rounded-3xl p-8 flex flex-col justify-between h-[250px]">
+                        <div>
+                            <h3 className="text-3xl font-bold text-white mb-2">{stats?.token?.phase || "Phase 3"}</h3>
+                            <p className="text-gray-400">Current Token Sale Phase</p>
                         </div>
 
-                        {/* Row 2 */}
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Total Direct Team</p>
-                            <h3 className="text-2xl font-bold text-purple-500">24</h3>
+                        <div className="flex justify-between items-end">
+                            <span className="text-gray-400">Phase Rate:</span>
+                            <span className="text-4xl font-bold text-purple-500">{stats?.token?.rate || "4.8"}</span>
                         </div>
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Level Income Earned</p>
-                            <h3 className="text-2xl font-bold text-green-500">₹1200.50</h3>
-                        </div>
+                    </div>
+                </div>
 
-                        {/* Row 3 */}
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Sponsor Income Earned</p>
-                            <h3 className="text-2xl font-bold text-blue-400">₹650.75</h3>
-                        </div>
-                        <div className="p-4 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-gray-400 text-sm mb-1">Total Earned Income</p>
-                            <h3 className="text-2xl font-bold text-red-500">₹1851.25</h3>
+                {/* Referral Program */}
+                <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-purple-400">Referral Program</h3>
+                    <div className="bg-[#131118] border border-white/5 rounded-3xl p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Your Referral ID</p>
+                                <h3 className="text-lg font-bold text-white">{stats?.user?.referralCode || "N/A"}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Your Sponsor</p>
+                                <h3 className="text-lg font-bold text-white">{stats?.user?.sponsor || "System"}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Total Direct Team</p>
+                                <h3 className="text-xl font-bold text-purple-500">{stats?.team?.directs || 0}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Level Income Earned</p>
+                                <h3 className="text-xl font-bold text-green-500">₹{stats?.income?.level?.toFixed(2) || "0.00"}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Sponsor Income Earned</p>
+                                <h3 className="text-xl font-bold text-blue-400">₹{stats?.income?.sponsor?.toFixed(2) || "0.00"}</h3>
+                            </div>
+                            <div className="bg-[#0a0a0a] p-4 rounded-xl border border-white/5">
+                                <p className="text-gray-500 text-xs mb-1">Total Earned Income</p>
+                                <h3 className="text-xl font-bold text-red-500">₹{stats?.income?.total?.toFixed(2) || "0.00"}</h3>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,46 +1,61 @@
-const Withdrawal = require('../models/Withdrawal');
-const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const User = require('../models/User');
 
-// @desc    Request a withdrawal
+// @desc    Create a new withdrawal request
 // @route   POST /api/withdrawals
 // @access  Private
-const requestWithdrawal = async (req, res) => {
+const createWithdrawal = async (req, res) => {
     try {
-        const { source, amount, method, walletAddress, bankDetails } = req.body;
+        const { amount, source, method, bankDetails, walletAddress } = req.body;
 
-        const user = await User.findById(req.user._id);
-
-        // Check sufficient balance (Mock check - in real app would check specific wallet based on source)
-        // For now, assume user has balance or just process request
-        if (user.balance < amount) {
-            // return res.status(400).json({ message: 'Insufficient balance' });
+        // Basic Validation
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: 'Invalid amount' });
         }
 
-        const withdrawal = await Withdrawal.create({
+        // Check sufficient balance (mock check - in real app, check distinct wallet balances)
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Logic to check specific wallet balance based on 'source' would go here.
+        // For now, we assume user has balance or we skip check for the mock.
+
+        const withdrawal = await Transaction.create({
             user: req.user._id,
-            source,
+            type: 'withdrawal',
             amount,
-            method,
-            walletAddress: method === 'Crypto' ? walletAddress : undefined,
-            bankDetails: method === 'Bank' ? bankDetails : undefined,
-            status: 'Pending'
+            status: 'pending',
+            description: `Withdrawal from ${source} via ${method}`,
+            // Saving method details in description or we could extend schema if strictly needed, 
+            // but schema provided didn't have specific bank field, so sticking to description/hash.
+            // We can put bank details in description for admin review.
+            hash: method === 'Crypto' ? walletAddress : JSON.stringify(bankDetails)
         });
 
         res.status(201).json(withdrawal);
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-// @desc    Get user withdrawals
+// @desc    Get my withdrawals
 // @route   GET /api/withdrawals
 // @access  Private
-const getWithdrawals = async (req, res) => {
+const getMyWithdrawals = async (req, res) => {
     try {
-        const withdrawals = await Withdrawal.find({ user: req.user._id }).sort({ createdAt: -1 });
+        const withdrawals = await Transaction.find({
+            user: req.user._id,
+            type: 'withdrawal'
+        }).sort({ createdAt: -1 });
+
         res.json(withdrawals);
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
@@ -50,50 +65,44 @@ const getWithdrawals = async (req, res) => {
 // @access  Private/Admin
 const getAllWithdrawals = async (req, res) => {
     try {
-        const withdrawals = await Withdrawal.find({}).populate('user', 'name email').sort({ createdAt: -1 });
+        const withdrawals = await Transaction.find({ type: 'withdrawal' })
+            .populate('user', 'name email')
+            .sort({ createdAt: -1 });
+
         res.json(withdrawals);
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-// @desc    Update withdrawal status
+// @desc    Update withdrawal status (Admin)
 // @route   PUT /api/withdrawals/:id
 // @access  Private/Admin
 const updateWithdrawalStatus = async (req, res) => {
     try {
-        const { status, transactionId } = req.body;
-        const withdrawal = await Withdrawal.findById(req.params.id);
+        const { status } = req.body;
+        const withdrawal = await Transaction.findById(req.params.id);
 
         if (!withdrawal) {
             return res.status(404).json({ message: 'Withdrawal not found' });
         }
 
         withdrawal.status = status;
-        if (transactionId) withdrawal.transactionId = transactionId;
         await withdrawal.save();
 
-        // If approved, create a Transaction record for history
-        if (status === 'Approved' || status === 'Completed') {
-            await Transaction.create({
-                user: withdrawal.user,
-                type: 'Withdrawal',
-                amount: withdrawal.amount,
-                status: 'Completed',
-                method: withdrawal.method,
-                description: `Withdrawal from ${withdrawal.source}`
-            });
-        }
-
         res.json(withdrawal);
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 module.exports = {
-    requestWithdrawal,
-    getWithdrawals,
+    createWithdrawal,
+    getMyWithdrawals,
     getAllWithdrawals,
     updateWithdrawalStatus
 };

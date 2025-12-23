@@ -1,156 +1,134 @@
 import { useState, useEffect } from "react";
-import { Upload, Loader2, CheckCircle } from "lucide-react";
+import { Upload, Loader2, FileText, Download, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { API_BASE_URL } from "../../config";
 
 const Packages = () => {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
+    const [investments, setInvestments] = useState([]);
+    const [notification, setNotification] = useState({ type: null, message: null });
 
-    // Packages State
-    const [availablePackages, setAvailablePackages] = useState([]);
-    const [selectedPkg, setSelectedPkg] = useState(null); // Initialize as null for safety
+    const [formData, setFormData] = useState({
+        amount: "",
+        transactionId: "",
+        paymentSlip: null
+    });
 
-    // Fetch Packages
+    // Fetch Investment History
     useEffect(() => {
-        let isMounted = true;
-        const fetchPackages = async () => {
+        const fetchInvestments = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/packages`);
-                const data = await response.json();
-
-                if (isMounted) {
-                    if (response.ok && Array.isArray(data)) {
-                        setAvailablePackages(data);
-                    } else {
-                        console.error("Invalid packages data received:", data);
-                        setAvailablePackages([]);
+                const response = await fetch(`${API_BASE_URL}/api/investments/my`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setInvestments(data);
                 }
             } catch (error) {
-                console.error("Failed to fetch packages", error);
-                if (isMounted) setAvailablePackages([]);
+                console.error("Failed to fetch investments", error);
             }
         };
 
-        fetchPackages();
-        return () => { isMounted = false; };
+        fetchInvestments();
     }, []);
 
-    // Mock Form Data
-    const [formData, setFormData] = useState({
-        amount: "",
-        txId: "",
-        userId: user?.id || user?._id || "" // Handle both id formats
-    });
+    const showNotification = (type, message) => {
+        setNotification({ type, message });
+        setTimeout(() => setNotification({ type: null, message: null }), 5000);
+    };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
+        setNotification({ type: null, message: null });
 
-        // Simulate API Key
-        setTimeout(() => {
+        try {
+            const data = new FormData();
+            data.append('amount', formData.amount);
+            data.append('transactionId', formData.transactionId);
+            data.append('sponsorId', user?.sponsorId || ""); // Assuming sponsorId is in user object
+            if (formData.paymentSlip) {
+                data.append('paymentSlip', formData.paymentSlip);
+            }
+
+            const response = await fetch(`${API_BASE_URL}/api/investments`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: data
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Investment failed');
+            }
+
+            showNotification('success', "Investment request submitted successfully!");
+
+            // Reset form
+            setFormData({ amount: "", transactionId: "", paymentSlip: null });
+
+            // Refresh history
+            // In a real app, we might just add the new item to state or refetch
+            // For now, let's refetch
+            const historyRes = await fetch(`${API_BASE_URL}/api/investments/my`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (historyRes.ok) {
+                setInvestments(await historyRes.json());
+            }
+
+        } catch (error) {
+            showNotification('error', error.message);
+        } finally {
             setIsLoading(false);
-            setSuccess(true);
-            setFormData({ amount: "", txId: "", userId: user?.id || user?._id || "" });
-
-            // Hide success message after 3s
-            setTimeout(() => setSuccess(false), 3000);
-        }, 1500);
+        }
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            {/* Header Section */}
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+            {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Investment Packages</h1>
-                <p className="text-gray-400 mb-6">Submit your package purchase request</p>
-
-                <button className="bg-primary text-white font-bold py-2 px-6 rounded-lg shadow-glow hover:bg-primary-glow transition">
-                    Buy Package
-                </button>
+                <h1 className="text-3xl font-bold text-white mb-2">Investment Plans</h1>
+                <p className="text-gray-400">Submit your investment request</p>
             </div>
 
-            {/* Available Packages Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(!availablePackages || availablePackages.length === 0) ? (
-                    <div className="col-span-full text-center p-8 bg-zinc-900 rounded-xl border border-white/5">
-                        <p className="text-gray-400">No active investment packages available at the moment.</p>
-                        <p className="text-xs text-gray-600 mt-2">Please check back later or contact support.</p>
-                    </div>
-                ) : (
-                    availablePackages.map((pkg) => (
-                        <div
-                            key={pkg._id || Math.random()} // Fallback key
-                            className={`bg-zinc-900 border rounded-xl overflow-hidden p-6 cursor-pointer transition relative ${selectedPkg?._id === pkg._id ? 'border-primary shadow-glow' : 'border-white/5 hover:border-white/20'}`}
-                            onClick={() => {
-                                setSelectedPkg(pkg);
-                                setFormData(prev => ({ ...prev, amount: pkg.minInvestment || "" }));
-                            }}
-                        >
-                            {selectedPkg?._id === pkg._id && (
-                                <div className="absolute top-2 right-2 text-primary">
-                                    <CheckCircle className="w-5 h-5" />
-                                </div>
-                            )}
-                            <h3 className="text-xl font-bold text-white mb-2">{pkg.name || "Unnamed Package"}</h3>
-                            <p className="text-gray-400 text-sm h-10 line-clamp-2 mb-4">{pkg.description || "No description"}</p>
+            {/* Investment Request Form */}
+            <div className="bg-[#110c1d] border border-white/5 rounded-2xl p-8 shadow-2xl">
+                <h2 className="text-2xl font-bold text-white mb-1">Investment Request</h2>
+                <p className="text-gray-400 text-sm mb-8">Fill the form below to make an investment</p>
 
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Min Invest</span>
-                                    <span className="text-white font-mono">₹{pkg.minInvestment || 0}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Max Invest</span>
-                                    <span className="text-white font-mono">₹{pkg.maxInvestment || "Unlimited"}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Daily Return</span>
-                                    <span className="text-green-400 font-bold">{pkg.roi || 0}%</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Duration</span>
-                                    <span className="text-white">{pkg.duration || 0} Days</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Form Card */}
-            <div className="bg-surface border border-white/5 rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                {/* Top Border Gradient */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-600"></div>
-
-                <h2 className="text-xl font-bold text-white mb-2">
-                    {selectedPkg ? `Purchase ${selectedPkg.name}` : "Package Purchase Request"}
-                </h2>
-                <p className="text-gray-400 text-sm mb-8">
-                    {selectedPkg ? `Selected Package: ${selectedPkg.name} (Min: ₹${selectedPkg.minInvestment})` : "Select a package above and fill the form"}
-                </p>
-
-                {success && (
-                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3 text-green-400 animate-pulse">
-                        <CheckCircle className="w-5 h-5" />
-                        <span>Request submitted successfully! It will be processed within 24 hours.</span>
+                {notification.message && (
+                    <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-pulse border ${notification.type === 'success'
+                            ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        }`}>
+                        {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        <span>{notification.message}</span>
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Package Amount */}
+
+                    {/* Amount */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-white">Package Amount (₹)</label>
+                        <label className="text-sm font-bold text-white">Investment Amount (₹)</label>
                         <input
                             type="number"
-                            placeholder="Enter package amount"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
+                            placeholder="Enter investment amount (Min: ₹500)"
+                            className="w-full bg-[#0b0b14] border border-white/10 rounded-xl p-4 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition"
                             required
+                            min="500"
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                         />
+                        <p className="text-xs text-gray-500">Minimum investment amount: ₹500</p>
                     </div>
 
                     {/* Transaction ID */}
@@ -159,100 +137,126 @@ const Packages = () => {
                         <input
                             type="text"
                             placeholder="Enter your transaction ID"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
+                            className="w-full bg-[#0b0b14] border border-white/10 rounded-xl p-4 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition"
                             required
-                            value={formData.txId}
-                            onChange={(e) => setFormData({ ...formData, txId: e.target.value })}
+                            value={formData.transactionId}
+                            onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
                         />
                     </div>
 
                     {/* Payment Slip */}
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-white">Payment Slip</label>
-                        <div className="relative group cursor-pointer">
-                            <input type="file" className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer" />
-                            <div className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-gray-500 flex items-center justify-between group-hover:border-primary/50 transition">
-                                <span>Choose file No file chosen</span>
-                                <Upload className="w-4 h-4" />
+                        <div className="relative group cursor-pointer bg-[#0b0b14] border border-white/10 rounded-xl p-4 hover:border-purple-500/50 transition">
+                            <input
+                                type="file"
+                                className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+                                onChange={(e) => setFormData({ ...formData, paymentSlip: e.target.files[0] })}
+                            />
+                            <div className="flex items-center justify-between text-gray-400">
+                                <span className={formData.paymentSlip ? "text-white" : ""}>
+                                    {formData.paymentSlip ? formData.paymentSlip.name : "Choose file"}
+                                </span>
+                                <span className="text-gray-600">{formData.paymentSlip ? "Change" : "No file chosen"}</span>
                             </div>
                         </div>
                         <p className="text-xs text-gray-500">Upload your payment receipt/screenshot</p>
                     </div>
 
-                    {/* User ID */}
+                    {/* Sponsor ID */}
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-white">User ID</label>
+                        <label className="text-sm font-bold text-white">Sponsor ID</label>
                         <input
                             type="text"
-                            placeholder="Enter your user ID"
-                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition"
-                            value={formData.userId}
-                            onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                            placeholder="Loading sponsor ID..."
+                            className="w-full bg-[#0b0b14] border border-white/10 rounded-xl p-4 text-gray-400 cursor-not-allowed outline-none"
+                            readOnly
+                            value={user?.sponsorId || ""}
                         />
+                        <p className="text-xs text-gray-500">Your sponsor ID is automatically fetched from your profile</p>
                     </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-4 bg-gradient-to-r from-primary to-purple-600 hover:from-primary-glow hover:to-purple-500 text-white font-bold rounded-xl shadow-glow transition transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 mt-4"
-                    >
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Purchase Request"}
-                    </button>
-
-                    <p className="text-center text-xs text-gray-400 mt-4">
-                        Note: Your request will be processed within 24 hours after verification
+                    {/* Buttons */}
+                    <div className="grid md:grid-cols-2 gap-4 pt-4">
+                        <button type="button" className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-xl transition shadow-lg">
+                            Connect Wallet
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:opacity-90 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-2"
+                        >
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Investment Request"}
+                        </button>
+                    </div>
+                    <p className="text-center text-xs text-gray-400 mt-2">
+                        Note: Your investment request will be processed within 24 hours after verification
                     </p>
                 </form>
             </div>
 
-            {/* Purchase History Section */}
+            {/* Investment History */}
             <div>
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white">Purchase History</h2>
-                    <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <h2 className="text-2xl font-bold text-white">Investment History</h2>
+                    <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-lg">
                         Export CSV
                     </button>
                 </div>
 
-                <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-black/40 border-b border-white/5 text-gray-400 text-sm">
-                                    <th className="p-4 font-semibold">Amount</th>
-                                    <th className="p-4 font-semibold">Purchase Date</th>
-                                    <th className="p-4 font-semibold">Transaction ID</th>
-                                    <th className="p-4 font-semibold">Status</th>
-                                    <th className="p-4 font-semibold">Approved Date</th>
-                                    <th className="p-4 font-semibold">Invoice</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5 text-sm">
-                                {[
-                                    { amount: "₹100", date: "2024-01-15", txId: "TXN00123456", status: "Completed", approved: "2024-01-15", inv: "INV-001" },
-                                ].map((item, index) => (
-                                    <tr key={index} className="hover:bg-white/5 transition">
-                                        <td className="p-4 font-bold text-primary">{item.amount}</td>
-                                        <td className="p-4 text-gray-300">{item.date}</td>
-                                        <td className="p-4 text-gray-400 font-mono text-xs">{item.txId}</td>
-                                        <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${item.status === 'Completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                                                {item.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-gray-300">{item.approved}</td>
-                                        <td className="p-4">
-                                            <button className="px-3 py-1.5 bg-white/5 rounded-lg text-xs">View</button>
-                                        </td>
+                <div className="bg-[#110c1d] border border-white/5 rounded-2xl overflow-hidden min-h-[300px]">
+                    {investments.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-[300px] text-center p-8">
+                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                <FileText className="w-8 h-8 text-purple-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-2">No Investment History</h3>
+                            <p className="text-gray-400 text-sm mb-6">Your investment history will appear here once you make your first investment</p>
+                            <button className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition">
+                                Explore Investments
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-[#1a1429] border-b border-white/5 text-gray-300 text-sm font-bold uppercase tracking-wider">
+                                        <th className="p-5">Amount</th>
+                                        <th className="p-5">Purchase Date</th>
+                                        <th className="p-5">Transaction ID</th>
+                                        <th className="p-5">Status</th>
+                                        <th className="p-5">Approved Date</th>
+                                        <th className="p-5">Invoice</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-white/5 text-sm">
+                                    {investments.map((inv) => (
+                                        <tr key={inv._id} className="hover:bg-white/5 transition">
+                                            <td className="p-5 font-bold text-white">₹{inv.amount}</td>
+                                            <td className="p-5 text-gray-400">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                                            <td className="p-5 text-gray-400 font-mono">{inv.transactionId}</td>
+                                            <td className="p-5">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${inv.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                    inv.status === 'completed' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                                        'bg-red-500/10 text-red-500 border-red-500/20'
+                                                    }`}>
+                                                    {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                                                </span>
+                                            </td>
+                                            <td className="p-5 text-gray-400">{inv.approvedDate ? new Date(inv.approvedDate).toLocaleDateString() : '-'}</td>
+                                            <td className="p-5">
+                                                <button className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition">
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
-
         </div>
     );
 };

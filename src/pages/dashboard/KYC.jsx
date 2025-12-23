@@ -78,7 +78,14 @@ const KYC = () => {
                 body: data
             });
 
-            const result = await response.json();
+            let result;
+            const text = await response.text();
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.error("Non-JSON response:", text);
+                throw new Error("Server returned an invalid response. Please try again.");
+            }
 
             if (response.ok) {
                 setSuccess(true);
@@ -86,8 +93,8 @@ const KYC = () => {
                 setError(result.message || "Failed to submit KYC");
             }
         } catch (err) {
-            setError("Network Error: Could not submit KYC");
             console.error(err);
+            setError(err.message || "Network Error: Could not submit KYC");
         } finally {
             setIsLoading(false);
         }

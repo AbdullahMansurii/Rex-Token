@@ -73,6 +73,18 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    // Income Tracking
+    income: {
+        roi: { type: Number, default: 0 },
+        level: { type: Number, default: 0 },
+        sponsor: { type: Number, default: 0 },
+        total: { type: Number, default: 0 }
+    },
+    // Team Tracking
+    team: {
+        directs: { type: Number, default: 0 },
+        totalLines: { type: Number, default: 0 }
+    }
 }, {
     timestamps: true,
 });

@@ -13,12 +13,20 @@ const admin = (req, res, next) => {
 };
 
 // Submit KYC (User)
-router.post('/', protect, upload.fields([
-    { name: 'profilePhoto', maxCount: 1 },
-    { name: 'aadharFront', maxCount: 1 },
-    { name: 'aadharBack', maxCount: 1 },
-    { name: 'panImage', maxCount: 1 }
-]), submitKYC);
+router.post('/', protect, (req, res, next) => {
+    upload.fields([
+        { name: 'profilePhoto', maxCount: 1 },
+        { name: 'aadharFront', maxCount: 1 },
+        { name: 'aadharBack', maxCount: 1 },
+        { name: 'panImage', maxCount: 1 }
+    ])(req, res, (err) => {
+        if (err) {
+            // Multer error (e.g., file size, wrong type)
+            return res.status(400).json({ message: err.message || 'File upload error' });
+        }
+        next();
+    });
+}, submitKYC);
 
 // Get My KYC
 router.get('/me', protect, getUserKYC);
