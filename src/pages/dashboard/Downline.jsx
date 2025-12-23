@@ -12,6 +12,8 @@ const Downline = () => {
         totalCommission: "₹0"
     });
     const [level1Count, setLevel1Count] = useState(0);
+    const [level1Stats, setLevel1Stats] = useState({ volume: 0, commission: 0 });
+    const [level1Members, setLevel1Members] = useState([]);
 
     useEffect(() => {
         const fetchDownline = async () => {
@@ -24,6 +26,8 @@ const Downline = () => {
                 if (response.ok) {
                     setStats(data.stats);
                     setLevel1Count(data.level1?.length || 0);
+                    setLevel1Stats(data.level1Stats || { volume: 0, commission: 0 });
+                    setLevel1Members(data.level1 || []);
                 }
             } catch (error) {
                 console.error("Failed to fetch downline", error);
@@ -36,7 +40,7 @@ const Downline = () => {
     // Construct levels array dynamically based on fetched data
     // We only have real data for Level 1 currently
     const levels = [
-        { level: 1, members: level1Count, volume: "₹0", growth: "0%", commission: "₹0", rate: "10%", progress: level1Count > 0 ? 100 : 0 },
+        { level: 1, members: level1Count, volume: `₹${level1Stats.volume}`, growth: stats.networkGrowth, commission: `₹${level1Stats.commission}`, rate: "10%", progress: level1Count > 0 ? 100 : 0 },
         { level: 2, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "5%", progress: 0 },
         { level: 3, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "3%", progress: 0 },
         { level: 4, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "2%", progress: 0 },
@@ -160,7 +164,6 @@ const Downline = () => {
                                             <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
                                                 <div className="h-full bg-primary" style={{ width: `${(lvl.members / (stats.totalNetwork || 1)) * 100}%` }}></div>
                                             </div>
-                                            {/*<p className="text-[10px] text-gray-500 mt-0.5">{lvl.members} members</p>*/}
                                         </div>
                                     </div>
                                 </div>
@@ -200,7 +203,7 @@ const Downline = () => {
                 </div>
 
                 {/* Summary Footer */}
-                <div className="bg-[#1a1a2e] border border-t-0 border-white/5 rounded-b-2xl p-6 md:p-8">
+                <div className="bg-[#1a1a2e] border border-t-0 border-white/5 rounded-b-2xl p-6 md:p-8 mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 text-center md:divide-x divide-white/10">
                         <div className="pb-6 md:pb-0 border-b md:border-b-0 border-white/10">
                             <p className="text-gray-500 text-sm mb-1">Total Members</p>
@@ -214,6 +217,61 @@ const Downline = () => {
                             <p className="text-gray-500 text-sm mb-1">Total Commission</p>
                             <p className="text-2xl md:text-3xl font-bold text-teal-400">{stats.totalCommission}</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Level 1 Members List Table */}
+            <div>
+                <h2 className="text-xl font-bold text-white mb-4">Direct Referrals (Level 1)</h2>
+                <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-[#1a1a2e] text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <tr>
+                                    <th className="p-4 border-b border-white/5">User</th>
+                                    <th className="p-4 border-b border-white/5">Joined Date</th>
+                                    <th className="p-4 border-b border-white/5">Team Count</th>
+                                    <th className="p-4 border-b border-white/5">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm">
+                                {level1Members.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="p-8 text-center text-gray-500">
+                                            No direct referrals yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    level1Members.map((member) => (
+                                        <tr key={member._id} className="hover:bg-white/5 transition">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                                                        {member.name?.charAt(0) || 'U'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white font-bold">{member.name}</p>
+                                                        <p className="text-gray-500 text-xs">{member.email}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-gray-400">
+                                                {new Date(member.joinedDate).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-4 text-white font-bold">
+                                                {member.team?.totalLines || 0}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold uppercase border border-green-500/20">
+                                                    Active
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
