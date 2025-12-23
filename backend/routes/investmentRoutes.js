@@ -6,14 +6,8 @@ const { protect } = require('../middleware/authMiddleware');
 const { createInvestment, getMyInvestments, getAllInvestments, updateInvestmentStatus } = require('../controllers/investmentController');
 
 // Multer config
-const storage = multer.diskStorage({
-    destination(req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename(req, file, cb) {
-        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
+// Multer config
+const storage = multer.memoryStorage();
 
 const checkFileType = (file, cb) => {
     const filetypes = /jpg|jpeg|png|pdf/;

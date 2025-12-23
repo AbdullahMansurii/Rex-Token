@@ -9,7 +9,13 @@ const Transaction = require('../models/Transaction');
 const createInvestment = async (req, res) => {
     try {
         const { amount, transactionId, sponsorId } = req.body;
-        const paymentSlip = req.file ? req.file.path : null;
+        let paymentSlip = null;
+        if (req.file) {
+            // Convert to Base64 for Vercel/MongoDB storage (No disk write)
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            const mimeType = req.file.mimetype;
+            paymentSlip = `data:${mimeType};base64,${b64}`;
+        }
 
         if (!amount || !transactionId) {
             return res.status(400).json({ message: 'Please provide amount and transaction ID' });

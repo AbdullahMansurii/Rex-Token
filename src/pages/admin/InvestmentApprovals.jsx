@@ -169,9 +169,9 @@ const InvestmentApprovals = () => {
                                     <p className="text-gray-400 text-xs mb-2">Payment Slip / Proof</p>
                                     {selectedRequest.paymentSlip ? (
                                         <div className="rounded-xl overflow-hidden border border-white/10 bg-black">
-                                            <a href={`${API_BASE_URL}/${selectedRequest.paymentSlip}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={selectedRequest.paymentSlip.startsWith('data:') ? selectedRequest.paymentSlip : `${API_BASE_URL}/${selectedRequest.paymentSlip}`} target="_blank" rel="noopener noreferrer">
                                                 <img
-                                                    src={`${API_BASE_URL}/${selectedRequest.paymentSlip}`}
+                                                    src={selectedRequest.paymentSlip.startsWith('data:') ? selectedRequest.paymentSlip : `${API_BASE_URL}/${selectedRequest.paymentSlip}`}
                                                     className="w-full max-h-[300px] object-contain hover:opacity-90 transition cursor-zoom-in"
                                                     alt="Payment Slip"
                                                 />
