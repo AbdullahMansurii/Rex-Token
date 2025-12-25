@@ -11,9 +11,9 @@ const Downline = () => {
         overallBusiness: "₹0",
         totalCommission: "₹0"
     });
-    const [level1Count, setLevel1Count] = useState(0);
-    const [level1Stats, setLevel1Stats] = useState({ volume: 0, commission: 0 });
-    const [level1Members, setLevel1Members] = useState([]);
+    const [levels, setLevels] = useState([]);
+    const [selectedLevel, setSelectedLevel] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchDownline = async () => {
@@ -23,29 +23,23 @@ const Downline = () => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
+
                 if (response.ok) {
                     setStats(data.stats);
-                    setLevel1Count(data.level1?.length || 0);
-                    setLevel1Stats(data.level1Stats || { volume: 0, commission: 0 });
-                    setLevel1Members(data.level1 || []);
+                    setLevels(data.levels || []);
                 }
             } catch (error) {
                 console.error("Failed to fetch downline", error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
         if (user) fetchDownline();
     }, [user]);
 
-    // Construct levels array dynamically based on fetched data
-    // We only have real data for Level 1 currently
-    const levels = [
-        { level: 1, members: level1Count, volume: `₹${level1Stats.volume}`, growth: stats.networkGrowth, commission: `₹${level1Stats.commission}`, rate: "10%", progress: level1Count > 0 ? 100 : 0 },
-        { level: 2, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "5%", progress: 0 },
-        { level: 3, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "3%", progress: 0 },
-        { level: 4, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "2%", progress: 0 },
-        { level: 5, members: 0, volume: "₹0", growth: "0%", commission: "₹0", rate: "1%", progress: 0 },
-    ];
+    // Helper to get selected level data safely
+    const currentLevelData = levels.find(l => l.level === selectedLevel) || { members: [] };
 
     return (
         <div className="space-y-8">
@@ -129,12 +123,12 @@ const Downline = () => {
                 <div className="flex justify-between items-end mb-4">
                     <div>
                         <h2 className="text-xl font-bold text-white">Your Network Performance</h2>
-                        <p className="text-sm text-gray-400">Detailed breakdown of your network by levels</p>
+                        <p className="text-sm text-gray-400">Detailed breakdown of your network by levels. Click a row to view members.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Active Levels:</span>
                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-bold text-white text-sm">
-                            {levels.filter(l => l.members > 0).length}
+                            {levels.filter(l => l.stats.count > 0).length}
                         </div>
                     </div>
                 </div>
@@ -151,54 +145,65 @@ const Downline = () => {
 
                     {/* Table Body */}
                     <div className="divide-y divide-white/5">
-                        {levels.map((lvl) => (
-                            <div key={lvl.level} className="grid grid-cols-12 gap-4 p-5 hover:bg-white/5 transition items-center group min-w-[800px]">
-                                {/* Level */}
-                                <div className="col-span-3">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white bg-gradient-to-br from-primary to-purple-600 shadow-glow`}>
-                                            L{lvl.level}
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-bold text-sm">Level {lvl.level}</p>
-                                            <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
-                                                <div className="h-full bg-primary" style={{ width: `${(lvl.members / (stats.totalNetwork || 1)) * 100}%` }}></div>
+                        {isLoading ? (
+                            <div className="p-8 text-center text-gray-500">Loading network data...</div>
+                        ) : levels.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500">No network data available yet.</div>
+                        ) : (
+                            levels.map((lvl) => (
+                                <div
+                                    key={lvl.level}
+                                    onClick={() => setSelectedLevel(lvl.level)}
+                                    className={`grid grid-cols-12 gap-4 p-5 cursor-pointer transition items-center group min-w-[800px] border-l-4 ${selectedLevel === lvl.level ? "bg-white/5 border-primary" : "border-transparent hover:bg-white/5"}`}
+                                >
+                                    {/* Level */}
+                                    <div className="col-span-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white bg-gradient-to-br from-primary to-purple-600 shadow-glow`}>
+                                                L{lvl.level}
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-bold text-sm">Level {lvl.level}</p>
+                                                <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                                                    {/* Activity bar relative to total network size or just arbitrary if network is small */}
+                                                    <div className="h-full bg-primary" style={{ width: `${stats.totalNetwork > 0 ? (lvl.stats.count / stats.totalNetwork) * 100 : 0}%` }}></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Members */}
-                                <div className="col-span-2">
-                                    <p className="text-lg font-bold text-white">{lvl.members} <span className="text-xs text-gray-500 font-normal">members</span></p>
-                                </div>
-
-                                {/* Business Volume */}
-                                <div className="col-span-3">
-                                    <p className="text-lg font-bold text-white">{lvl.volume}</p>
-                                    <p className="text-xs text-green-400 flex items-center gap-1">
-                                        <TrendingUp className="w-3 h-3" /> {lvl.growth}
-                                    </p>
-                                </div>
-
-                                {/* Commission */}
-                                <div className="col-span-2">
-                                    <p className="text-lg font-bold text-teal-400">{lvl.commission}</p>
-                                    <p className="text-[10px] text-gray-500">{lvl.rate} commission rate</p>
-                                </div>
-
-                                {/* Performance */}
-                                <div className="col-span-2">
-                                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                                        <span>Growth</span>
-                                        <span className="text-white font-bold">{lvl.progress}%</span>
+                                    {/* Members */}
+                                    <div className="col-span-2">
+                                        <p className="text-lg font-bold text-white">{lvl.stats.count} <span className="text-xs text-gray-500 font-normal">members</span></p>
                                     </div>
-                                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                        <div className="h-full bg-teal-400 rounded-full transition-all duration-1000" style={{ width: `${lvl.progress}%` }}></div>
+
+                                    {/* Business Volume */}
+                                    <div className="col-span-3">
+                                        <p className="text-lg font-bold text-white">₹{lvl.stats.volume.toLocaleString()}</p>
+                                        <p className="text-xs text-green-400 flex items-center gap-1">
+                                            <TrendingUp className="w-3 h-3" /> {lvl.stats.activeCount || 0} active
+                                        </p>
+                                    </div>
+
+                                    {/* Commission */}
+                                    <div className="col-span-2">
+                                        <p className="text-lg font-bold text-teal-400">₹{lvl.stats.commission.toLocaleString()}</p>
+                                        <p className="text-[10px] text-gray-500">{(lvl.stats.rate * 100)}% commission rate</p>
+                                    </div>
+
+                                    {/* Performance (Activity) */}
+                                    <div className="col-span-2">
+                                        <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                                            <span>Activity</span>
+                                            <span className="text-white font-bold">{stats.totalNetwork > 0 ? Math.round((lvl.stats.count / stats.totalNetwork) * 100) : 0}%</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                            <div className="h-full bg-teal-400 rounded-full transition-all duration-1000" style={{ width: `${stats.totalNetwork > 0 ? (lvl.stats.count / stats.totalNetwork) * 100 : 0}%` }}></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -221,9 +226,9 @@ const Downline = () => {
                 </div>
             </div>
 
-            {/* Level 1 Members List Table */}
+            {/* Level Members List Table */}
             <div>
-                <h2 className="text-xl font-bold text-white mb-4">Direct Referrals (Level 1)</h2>
+                <h2 className="text-xl font-bold text-white mb-4">Level {selectedLevel} Members</h2>
                 <div className="bg-surface border border-white/5 rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -232,18 +237,19 @@ const Downline = () => {
                                     <th className="p-4 border-b border-white/5">User</th>
                                     <th className="p-4 border-b border-white/5">Joined Date</th>
                                     <th className="p-4 border-b border-white/5">Team Count</th>
+                                    <th className="p-4 border-b border-white/5">Investment</th>
                                     <th className="p-4 border-b border-white/5">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-sm">
-                                {level1Members.length === 0 ? (
+                                {currentLevelData.members.length === 0 ? (
                                     <tr>
-                                        <td colSpan="4" className="p-8 text-center text-gray-500">
-                                            No direct referrals yet.
+                                        <td colSpan="5" className="p-8 text-center text-gray-500">
+                                            No members in Level {selectedLevel}.
                                         </td>
                                     </tr>
                                 ) : (
-                                    level1Members.map((member) => (
+                                    currentLevelData.members.map((member) => (
                                         <tr key={member._id} className="hover:bg-white/5 transition">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
@@ -260,11 +266,14 @@ const Downline = () => {
                                                 {new Date(member.joinedDate).toLocaleDateString()}
                                             </td>
                                             <td className="p-4 text-white font-bold">
-                                                {member.team?.totalLines || 0}
+                                                {member.teamCount}
+                                            </td>
+                                            <td className="p-4 text-teal-400 font-bold">
+                                                ₹{member.totalInvestment ? member.totalInvestment.toLocaleString() : 0}
                                             </td>
                                             <td className="p-4">
                                                 <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-[10px] font-bold uppercase border border-green-500/20">
-                                                    Active
+                                                    {member.status}
                                                 </span>
                                             </td>
                                         </tr>
